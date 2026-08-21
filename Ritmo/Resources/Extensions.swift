@@ -27,3 +27,12 @@ extension Dictionary {
         })
     }
 }
+
+extension Locale {
+    static var appPreferred: Locale {
+        guard let languageCode = Bundle.main.preferredLocalizations.first else {
+            return .current
+        }
+        return Locale(identifier: languageCode)
+    }
+}

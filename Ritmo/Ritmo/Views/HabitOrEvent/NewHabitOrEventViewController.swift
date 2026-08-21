@@ -16,6 +16,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     // MARK: - Public Properties
 
     var isHabit: Bool = true
+    var isStopList: Bool = false
     var isEditingRitmo: Bool = false
     var ritmoToEdit: Ritmo?
     var ritmoCategoryToEdit: RitmoCategory?
@@ -37,6 +38,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     private var selectedReminderTime: Date?
     private var tableViewHeightConstraint: NSLayoutConstraint!
     private var characterLimitHeightConstraint: NSLayoutConstraint!
+    private var typeSegmentHeightConstraint: NSLayoutConstraint!
     private let settingsRowHeight: CGFloat = 75
 
     private var selectedEmojiIndexPath: IndexPath?
@@ -48,6 +50,10 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
                           "🌿", "🪴", "🍎", "🍋", "🥛", "🏋️",
                           "🚴", "🏊", "🧩", "🎨", "🎧", "📝",
                           "🕯️", "🌙", "☀️", "⏰", "🗓️", "🛏️"]
+
+    private let stopListEmojis = ["🚭", "🍷", "🍺", "🍔", "🍟", "🍬",
+                                  "🍫", "🥤", "📱", "🎰", "🛒", "💸",
+                                  "😡", "🌙", "☕️", "🛋️", "🧂", "🍕"]
 
     private let colors: [UIColor] = [
         UIColor(red: 0.20, green: 0.47, blue: 1.00, alpha: 1),
@@ -89,7 +95,15 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     ]
 
     private var settingsRows: [RitmoSettingsRow] {
-        isHabit ? [.category, .schedule, .reminder] : [.category, .eventDate, .reminder]
+        if isStopList {
+            return []
+        }
+
+        return isHabit ? [.category, .schedule, .reminder] : [.category, .eventDate, .reminder]
+    }
+
+    private var activeEmojis: [String] {
+        isStopList ? stopListEmojis : emojis
     }
 
     private var tableViewHeight: CGFloat {
@@ -98,6 +112,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
     private lazy var reminderDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = .appPreferred
         formatter.dateStyle = .none
         formatter.timeStyle = .short
         return formatter
@@ -105,6 +120,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
     private lazy var eventDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = .appPreferred
         formatter.setLocalizedDateFormatFromTemplate("EEE, d MMM")
         return formatter
     }()
@@ -133,7 +149,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
     private lazy var nameTitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Название"
+        label.text = NSLocalizedString("nameField.title", comment: "Name field title")
         label.font = .ritmoBold(18)
         label.textColor = .ypLightGray
         return label
@@ -210,7 +226,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
     private lazy var previewEmojiLabel: UILabel = {
         let label = UILabel()
-        label.text = selectedEmoji ?? emojis[0]
+        label.text = selectedEmoji ?? activeEmojis[0]
         label.font = .ritmoMedium(34)
         label.textAlignment = .center
         label.backgroundColor = UIColor.white.withAlphaComponent(0.22)
@@ -357,7 +373,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         let label = UILabel()
         label.font = .ritmoBold(24)
         label.textColor = .ypLightGray
-        label.text = "Emoji"
+        label.text = NSLocalizedString("emojiCollectionView.title", comment: "Emoji picker title")
         return label
     }()
 
@@ -425,6 +441,8 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         tableViewHeightConstraint = tableView.heightAnchor.constraint(equalToConstant: tableViewHeight)
         tableViewHeightConstraint.isActive = true
         characterLimitHeightConstraint = characterLimitLabel.heightAnchor.constraint(equalToConstant: 0)
+        typeSegmentHeightConstraint = typeSegmentView.heightAnchor.constraint(equalToConstant: isStopList ? 0 : 56)
+        typeSegmentHeightConstraint.isActive = true
         setupPreviewCard()
 
         // UI Elements
@@ -453,7 +471,6 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             topStackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
 
             ritmoNameTF.heightAnchor.constraint(equalToConstant: 64),
-            typeSegmentView.heightAnchor.constraint(equalToConstant: 56),
             previewCardView.heightAnchor.constraint(equalToConstant: 104),
 
             // Character limit label
@@ -569,6 +586,12 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     }
 
     private func updateTypeSegmentView() {
+        typeSegmentView.isHidden = isStopList
+        typeSegmentHeightConstraint?.constant = isStopList ? 0 : 56
+        guard !isStopList else {
+            return
+        }
+
         typeSegmentView.arrangedSubviews.forEach {
             typeSegmentView.removeArrangedSubview($0)
             $0.removeFromSuperview()
@@ -600,19 +623,28 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     }
 
     private func updatePreviewCard() {
-        let fallbackTitle = isHabit
-            ? NSLocalizedString("newHabit", comment: "Habit preview fallback")
-            : NSLocalizedString("newIrregularEvent", comment: "Event preview fallback")
+        let fallbackTitle: String
+        if isStopList {
+            fallbackTitle = NSLocalizedString("newStopListItem", comment: "Stop-list item preview fallback")
+        } else if isHabit {
+            fallbackTitle = NSLocalizedString("newHabit", comment: "Habit preview fallback")
+        } else {
+            fallbackTitle = NSLocalizedString("newIrregularEvent", comment: "Event preview fallback")
+        }
         let title = (ritmoNameTF.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let color = selectedColor ?? colors[0]
 
         previewCardView.backgroundColor = color
-        previewEmojiLabel.text = selectedEmoji ?? emojis[0]
+        previewEmojiLabel.text = selectedEmoji ?? activeEmojis[0]
         previewTitleLabel.text = title.isEmpty ? fallbackTitle : title
         previewSubtitleLabel.text = previewSubtitle()
     }
 
     private func previewSubtitle() -> String {
+        if isStopList {
+            return NSLocalizedString("stopList.preview.subtitle", comment: "Stop-list preview subtitle")
+        }
+
         if isHabit {
             let schedule = scheduleSubtitle().isEmpty
                 ? NSLocalizedString("scheduleTable.title", comment: "")
@@ -629,7 +661,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     }
 
     @objc private func typeSegmentDidTap(_ sender: UIButton) {
-        guard !isEditingRitmo else { return }
+        guard !isEditingRitmo, !isStopList else { return }
 
         let shouldSelectHabit = sender.tag == 0
         guard isHabit != shouldSelectHabit else { return }
@@ -645,7 +677,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
     private func setupEmojiAndColorForEditRitmo(){
         if let habit = ritmoToEdit {
-                if let emojiIndex = emojis.firstIndex(of: habit.emoji) {
+                if let emojiIndex = activeEmojis.firstIndex(of: habit.emoji) {
                     selectedEmojiIndexPath = IndexPath(item: emojiIndex, section: 0)
                 }
 
@@ -675,7 +707,8 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
         let newRitmo = makeRitmo()
 
-        guard let category = selectedCategory else {
+        let category = selectedCategory
+        guard isStopList || category != nil else {
             return
         }
 
@@ -708,7 +741,9 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         let today = Date()
         var schedule: [Weekday] = []
 
-        if isHabit {
+        if isStopList {
+            schedule = Weekday.allCases
+        } else if isHabit {
             schedule = selectedDays
         } else {
             let eventDate = eventDate(for: today) ?? today
@@ -723,17 +758,18 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             color: selectedColor ?? UIColor(white: 1, alpha: 1),
             emoji: selectedEmoji ?? "",
             schedule: schedule,
-            isHabit: isHabit,
-            reminderTime: selectedReminderTime,
+            isHabit: isStopList ? false : isHabit,
+            reminderTime: isStopList ? nil : selectedReminderTime,
             eventDate: eventDate(for: today),
             createdDate: ritmoToEdit?.createdDate ?? today,
             archivedDate: ritmoToEdit?.archivedDate,
-            isArchived: ritmoToEdit?.isArchived ?? false
+            isArchived: ritmoToEdit?.isArchived ?? false,
+            isStopList: isStopList
         )
     }
 
     private func eventDate(for fallbackDate: Date) -> Date? {
-        guard !isHabit else {
+        guard !isHabit, !isStopList else {
             return nil
         }
 
@@ -741,7 +777,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     }
 
     private func prepareInitialEventDate() {
-        guard !isHabit else { return }
+        guard !isHabit, !isStopList else { return }
 
         selectedEventDate = normalizedEventDate(selectedEventDate ?? ritmoToEdit?.eventDate)
     }
@@ -804,12 +840,15 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         let selectedColor = selectedColor != nil
         if isEditingRitmo {
             isHabit = ritmoToEdit?.isHabit ?? false
+            isStopList = ritmoToEdit?.isStopList ?? false
         }
 
         print("isText: \(isText), selectedSchedule: \(selectedSchedule), category: \(category), emoji: \(selectedEmoji), color: \(selectedColor), isHabit: \(isHabit)")
 
         let buttonIsAvailable: Bool
-        if isHabit {
+        if isStopList {
+            buttonIsAvailable = isText && selectedColor && selectedEmoji
+        } else if isHabit {
             buttonIsAvailable = isText && selectedSchedule && category && selectedEmoji && selectedColor
         } else {
             buttonIsAvailable = isText && category && selectedColor && selectedEmoji
@@ -835,8 +874,11 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     }
 
     private func habitOrEventLabel(){
-        if isHabit {
-            let text = NSLocalizedString("newHabit", comment: "Заголовок экрана создания трекера")
+        if isStopList {
+            let text = NSLocalizedString("newStopListItem", comment: "Заголовок экрана создания пункта стоп-листа")
+            newHabitLabel.text = text
+        } else if isHabit {
+            let text = NSLocalizedString("newHabit", comment: "Заголовок экрана создания ритма")
             newHabitLabel.text = text
         } else {
             let text = NSLocalizedString("newIrregularEvent", comment: "Заголовок экрана создания события")
@@ -999,11 +1041,14 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         selectedEmoji = ritmo.emoji
         selectedDays = ritmo.schedule
         selectedCategory = ritmoCategoryToEdit
-        selectedReminderTime = ritmo.reminderTime
-        selectedEventDate = ritmo.isHabit ? nil : normalizedEventDate(ritmo.eventDate)
+        selectedReminderTime = ritmo.isStopList ? nil : ritmo.reminderTime
+        selectedEventDate = ritmo.isHabit || ritmo.isStopList ? nil : normalizedEventDate(ritmo.eventDate)
         isHabit = ritmo.isHabit
+        isStopList = ritmo.isStopList
         updateTypeSegmentView()
-        let text = NSLocalizedString("editHabit", comment: "")
+        let text = isStopList
+            ? NSLocalizedString("editStopListItem", comment: "")
+            : NSLocalizedString("editHabit", comment: "")
         newHabitLabel.text = text
 
         countDaysLabel.isHidden = !ritmo.isHabit
@@ -1014,14 +1059,14 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
                 selectedColorIndexPath = IndexPath(item: index, section: 0)
             }
 
-            if let index = emojis.firstIndex(of: ritmo.emoji) {
+            if let index = activeEmojis.firstIndex(of: ritmo.emoji) {
                 selectedEmojiIndexPath = IndexPath(item: index, section: 0)
             }
 
             tableView.reloadData()
             emojiCollection.reloadData()
             colorCollection.reloadData()
-        createButton.setTitle("Сохранить", for: .normal)
+        createButton.setTitle(NSLocalizedString("saveButton", comment: "Save button"), for: .normal)
             createButtonIsAvailable()
             updatePreviewCard()
     }
@@ -1168,7 +1213,7 @@ extension NewHabitOrEventViewController: UICollectionViewDelegate, UICollectionV
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         switch collectionView.tag {
         case 1:
-            return emojis.count
+            return activeEmojis.count
         case 2:
             return colors.count
         default:
@@ -1185,7 +1230,7 @@ extension NewHabitOrEventViewController: UICollectionViewDelegate, UICollectionV
         switch collectionView.tag {
         case 1:
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "EmojiCell", for: indexPath) as? EmojiCell else {return UICollectionViewCell()}
-            cell.configureEmoji(emoji: emojis[indexPath.item])
+            cell.configureEmoji(emoji: activeEmojis[indexPath.item])
             cell.updateSelection(isSelected: selectedEmojiIndexPath == indexPath)
             return cell
         case 2:
@@ -1225,8 +1270,8 @@ extension NewHabitOrEventViewController: UICollectionViewDelegate, UICollectionV
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         switch collectionView.tag {
         case 1:
-            guard emojis.indices.contains(indexPath.row) else { return }
-            let selectedEmoji = emojis[indexPath.row]
+            guard activeEmojis.indices.contains(indexPath.row) else { return }
+            let selectedEmoji = activeEmojis[indexPath.row]
 
             if let previousIndexPath = selectedEmojiIndexPath,
                let previousCell = emojiCollection.cellForItem(at: previousIndexPath) as? EmojiCell {

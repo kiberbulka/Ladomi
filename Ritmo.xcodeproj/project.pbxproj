@@ -14,6 +14,7 @@
 		CE1000092E58000000000009 /* TodayProgressWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1000012E58000000000001 /* TodayProgressWidget.swift */; };
 		CE10000A2E5800000000000A /* RitmoWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1000072E58000000000007 /* RitmoWidgetShared.swift */; };
 		CE10000C2E5800000000000C /* RitmoTodayWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = CE10000B2E5800000000000B /* RitmoTodayWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CE10001A2E5800000000001A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = CEE54E762DD4C95A008D8780 /* Localizable.strings */; };
 		CE1000192E59000000000019 /* ArchivedRitmosViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1000182E59000000000018 /* ArchivedRitmosViewController.swift */; };
 		CE2000022E5C000000000002 /* DayCalendarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2000012E5C000000000001 /* DayCalendarViewController.swift */; };
 		CE23478E2D9EBC1D00847108 /* RitmoType.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE23478D2D9EBC1D00847108 /* RitmoType.swift */; };
@@ -40,7 +41,7 @@
 		CE96144B2D8C6F9800AC062C /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE96144A2D8C6F9800AC062C /* SceneDelegate.swift */; };
 		CE96144D2D8C6F9800AC062C /* RitmosViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE96144C2D8C6F9800AC062C /* RitmosViewController.swift */; };
 		CE9614522D8C6F9A00AC062C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE9614512D8C6F9A00AC062C /* Assets.xcassets */; };
-		CE9614552D8C6F9A00AC062C /* Base in Resources */ = {isa = PBXBuildFile; fileRef = CE9614542D8C6F9A00AC062C /* Base */; };
+		CE9614552D8C6F9A00AC062C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CE9614532D8C6F9A00AC062C /* LaunchScreen.storyboard */; };
 		CE9614622D8D9B1A00AC062C /* TabBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9614612D8D9B1A00AC062C /* TabBarController.swift */; };
 		CE9614642D8D9BB300AC062C /* StatisticViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9614632D8D9BB300AC062C /* StatisticViewController.swift */; };
 		CE9614AE2D92F5D600AC062C /* Ritmo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9614AD2D92F5D600AC062C /* Ritmo.swift */; };
@@ -129,6 +130,8 @@
 		CE96144C2D8C6F9800AC062C /* RitmosViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RitmosViewController.swift; sourceTree = "<group>"; };
 		CE9614512D8C6F9A00AC062C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CE9614542D8C6F9A00AC062C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		CELOCAL012E58000000000001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Resources/en.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		CELOCAL022E58000000000002 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = Resources/ru.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		CE9614562D8C6F9A00AC062C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CE9614612D8D9B1A00AC062C /* TabBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarController.swift; sourceTree = "<group>"; };
 		CE9614632D8D9BB300AC062C /* StatisticViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticViewController.swift; sourceTree = "<group>"; };
@@ -524,6 +527,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE10001A2E5800000000001A /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -540,7 +544,7 @@
 			files = (
 				CE9614522D8C6F9A00AC062C /* Assets.xcassets in Resources */,
 				CEE54E782DD4C95A008D8780 /* Localizable.strings in Resources */,
-				CE9614552D8C6F9A00AC062C /* Base in Resources */,
+				CE9614552D8C6F9A00AC062C /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -634,6 +638,8 @@
 			isa = PBXVariantGroup;
 			children = (
 				CE9614542D8C6F9A00AC062C /* Base */,
+				CELOCAL012E58000000000001 /* en */,
+				CELOCAL022E58000000000002 /* ru */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";

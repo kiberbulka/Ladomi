@@ -39,6 +39,27 @@ final class StatisticViewController: UIViewController {
         return label
     }()
 
+    private lazy var placeholderContainerView: UIView = {
+        let view = UIView()
+
+        [placeholderImage, placeholderLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            view.heightAnchor.constraint(greaterThanOrEqualToConstant: 420),
+
+            placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            placeholderImage.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -28),
+
+            placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
+            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+
+        return view
+    }()
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
@@ -137,15 +158,16 @@ final class StatisticViewController: UIViewController {
         statisticsItems = makeStatisticsItems()
 
         let hasData = !statisticsItems.isEmpty
-        placeholderImage.isHidden = hasData
-        placeholderLabel.isHidden = hasData
-        scrollView.isHidden = !hasData
+        placeholderContainerView.isHidden = hasData
+        overviewCardView.isHidden = !hasData
+        insightsSectionLabel.isHidden = !hasData
+        insightsStackView.isHidden = !hasData
 
         if hasData {
             configureOverview()
             configureInsightCards()
-            scrollView.setContentOffset(.zero, animated: false)
         }
+        scrollView.setContentOffset(.zero, animated: false)
     }
 
     private func makeStatisticsItems() -> [StatisticsItem] {
@@ -161,37 +183,26 @@ final class StatisticViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = UIColor(red: 0.98, green: 0.98, blue: 0.97, alpha: 1)
 
-        [titleLabel, placeholderImage, placeholderLabel, scrollView].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
-        }
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scrollView)
 
         contentStackView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStackView)
 
         setupOverviewCard()
 
-        [overviewCardView, insightsSectionLabel, insightsStackView].forEach {
+        [titleLabel, placeholderContainerView, overviewCardView, insightsSectionLabel, insightsStackView].forEach {
             contentStackView.addArrangedSubview($0)
         }
+        contentStackView.setCustomSpacing(24, after: titleLabel)
 
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 44),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-
-            placeholderImage.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -273),
-            placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-
-            placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
-            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-
-            scrollView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 24),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
-            contentStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 44),
             contentStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -16),
             contentStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
@@ -556,6 +567,8 @@ final class StatisticViewController: UIViewController {
             return "gauge.medium"
         case NSLocalizedString("analytics.weekday.title", comment: ""):
             return "calendar"
+        case NSLocalizedString("analytics.stopList.title", comment: ""):
+            return "exclamationmark.circle.fill"
         default:
             return "chart.bar.fill"
         }
@@ -569,6 +582,8 @@ final class StatisticViewController: UIViewController {
             return secondaryColor
         case NSLocalizedString("analytics.weekday.title", comment: ""):
             return blueAccentColor
+        case NSLocalizedString("analytics.stopList.title", comment: ""):
+            return .ypRed
         default:
             return accentColor
         }

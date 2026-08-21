@@ -129,7 +129,8 @@ final class RitmoCategoryStore: NSObject {
                         eventDate: ritmoCoreData.eventDate,
                         createdDate: ritmoCoreData.createdDate ?? Date(),
                         archivedDate: ritmoCoreData.archivedDate,
-                        isArchived: ritmoCoreData.isArchived
+                        isArchived: ritmoCoreData.isArchived,
+                        isStopList: ritmoCoreData.isStopList
                     )
                 }
                 return RitmoCategory(title: title, ritmos: ritmoObjects)
@@ -194,4 +195,3 @@ extension RitmoCategoryStore: NSFetchedResultsControllerDelegate {
             }
         }
 }
-

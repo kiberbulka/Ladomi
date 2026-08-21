@@ -176,15 +176,20 @@ final class RitmoCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configureCell(ritmo: Ritmo, isCompletedToday: Bool, completedDays: Int, indexPath: IndexPath, isPinned: Bool) {
+    func configureCell(ritmo: Ritmo, isCompletedToday: Bool, displayDays: Int, indexPath: IndexPath, isPinned: Bool) {
         self.ritmoId = ritmo.id
         self.isCompletedToday = isCompletedToday
         self.indexPath = indexPath
         ritmoCardView.backgroundColor = ritmo.color
         ritmoCardNameLabel.text = ritmo.name
         ritmoCardEmojiLabel.text = ritmo.emoji
-        daysCounterLabel.isHidden = !ritmo.isHabit
-        daysCounterLabel.text = ritmo.isHabit ? pluralizeDays(completedDays) : nil
+        daysCounterLabel.isHidden = !(ritmo.isHabit || ritmo.isStopList)
+        if ritmo.isStopList {
+            let format = NSLocalizedString("stopList.cleanDaysFormat", comment: "Stop-list clean days counter")
+            daysCounterLabel.text = String(format: format, pluralizeDays(displayDays))
+        } else {
+            daysCounterLabel.text = ritmo.isHabit ? pluralizeDays(displayDays) : nil
+        }
         
         let imageName = isCompletedToday ? "doneButton" : "plusButton"
         if let image = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate) {

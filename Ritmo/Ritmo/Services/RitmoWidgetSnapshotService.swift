@@ -28,7 +28,7 @@ final class RitmoWidgetSnapshotService {
     private init() {}
 
     func saveTodaySnapshot(ritmos: [Ritmo], completedRecords: [RitmoRecord], date: Date = Date()) {
-        let activeRitmos = ritmos.filter { !$0.isArchived }
+        let activeRitmos = ritmos.filter { !$0.isArchived && !$0.isStopList }
 
         let todayHabits = sortedForWidget(
             activeRitmos.filter { $0.isHabit && isRitmoActiveForWidget($0, on: date, completedRecords: completedRecords) }

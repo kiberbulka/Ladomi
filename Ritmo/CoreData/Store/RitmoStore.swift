@@ -58,27 +58,28 @@ final class RitmoStore: NSObject {
         fetchedResultsController.sections?[section].numberOfObjects ?? 0
     }
     
-    func addRitmo(ritmo: Ritmo, category: RitmoCategory) {
+    func addRitmo(ritmo: Ritmo, category: RitmoCategory?) {
         let ritmoCoreData = RitmoCoreData(context: context)
         
-        let request = NSFetchRequest<RitmoCategoryCoreData>(entityName: "RitmoCategoryCoreData")
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(RitmoCategoryCoreData.title), category.title)
-        
-        var ritmoCategoryCoreData: RitmoCategoryCoreData?
-        
-        do {
-            let results = try context.fetch(request)
-            if let existingCategory = results.first {
-                ritmoCategoryCoreData = existingCategory
-            } else {
-                ritmoCategoryCoreData = RitmoCategoryCoreData(context: context)
-                ritmoCategoryCoreData?.title = category.title
-                CoreDataManager.shared.saveContext()
+        if let category = category {
+            let request = NSFetchRequest<RitmoCategoryCoreData>(entityName: "RitmoCategoryCoreData")
+            request.predicate = NSPredicate(format: "%K == %@", #keyPath(RitmoCategoryCoreData.title), category.title)
+            
+            do {
+                let results = try context.fetch(request)
+                if let existingCategory = results.first {
+                    ritmoCoreData.ritmoCategory = existingCategory
+                } else {
+                    let ritmoCategoryCoreData = RitmoCategoryCoreData(context: context)
+                    ritmoCategoryCoreData.title = category.title
+                    ritmoCoreData.ritmoCategory = ritmoCategoryCoreData
+                    CoreDataManager.shared.saveContext()
+                }
+            } catch {
+                print("Error fetching or creating category: \(error)")
             }
-        } catch {
-            print("Error fetching or creating category: \(error)")
         }
-        ritmoCoreData.ritmoCategory = ritmoCategoryCoreData
+
         ritmoCoreData.name = ritmo.name
         ritmoCoreData.id = ritmo.id
         ritmoCoreData.emoji = ritmo.emoji
@@ -87,6 +88,7 @@ final class RitmoStore: NSObject {
         ritmoCoreData.createdDate = ritmo.createdDate
         ritmoCoreData.archivedDate = ritmo.archivedDate
         ritmoCoreData.isArchived = ritmo.isArchived
+        ritmoCoreData.isStopList = ritmo.isStopList
         
         if let colorString = ritmo.color.toHexString() {
             ritmoCoreData.color = colorString
@@ -128,7 +130,8 @@ final class RitmoStore: NSObject {
                 eventDate: coreDataRitmo.eventDate,
                 createdDate: coreDataRitmo.createdDate ?? Date(),
                 archivedDate: coreDataRitmo.archivedDate,
-                isArchived: coreDataRitmo.isArchived
+                isArchived: coreDataRitmo.isArchived,
+                isStopList: coreDataRitmo.isStopList
             )
         }
     }
@@ -176,13 +179,13 @@ extension RitmoStore: NSFetchedResultsControllerDelegate {
 // MARK: - Extensions
 
 extension RitmoStore {
-    func updateRitmo(original: Ritmo, with updated: Ritmo, category: RitmoCategory) {
+    func updateRitmo(original: Ritmo, with updated: Ritmo, category: RitmoCategory?) {
         let request: NSFetchRequest<RitmoCoreData> = RitmoCoreData.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", original.id as CVarArg)
         
         do {
             guard let ritmoCoreData = try context.fetch(request).first else {
-                print("Не удалось найти трекер для обновления")
+                print("Не удалось найти ритм для обновления")
                 return
             }
             ritmoCoreData.name = updated.name
@@ -193,6 +196,7 @@ extension RitmoStore {
             ritmoCoreData.createdDate = updated.createdDate
             ritmoCoreData.archivedDate = updated.archivedDate
             ritmoCoreData.isArchived = updated.isArchived
+            ritmoCoreData.isStopList = updated.isStopList
             
             if let colorString = updated.color.toHexString() {
                 ritmoCoreData.color = colorString
@@ -207,25 +211,29 @@ extension RitmoStore {
                 print("Ошибка кодирования расписания")
                 ritmoCoreData.schedule = ""
             }
-            let categoryRequest = NSFetchRequest<RitmoCategoryCoreData>(entityName: "RitmoCategoryCoreData")
-            categoryRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(RitmoCategoryCoreData.title), category.title)
-            
-            let results = try context.fetch(categoryRequest)
-            let categoryCoreData: RitmoCategoryCoreData
-            
-            if let existingCategory = results.first {
-                categoryCoreData = existingCategory
+            if let category = category {
+                let categoryRequest = NSFetchRequest<RitmoCategoryCoreData>(entityName: "RitmoCategoryCoreData")
+                categoryRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(RitmoCategoryCoreData.title), category.title)
+                
+                let results = try context.fetch(categoryRequest)
+                let categoryCoreData: RitmoCategoryCoreData
+                
+                if let existingCategory = results.first {
+                    categoryCoreData = existingCategory
+                } else {
+                    categoryCoreData = RitmoCategoryCoreData(context: context)
+                    categoryCoreData.title = category.title
+                }
+                
+                ritmoCoreData.ritmoCategory = categoryCoreData
             } else {
-                categoryCoreData = RitmoCategoryCoreData(context: context)
-                categoryCoreData.title = category.title
+                ritmoCoreData.ritmoCategory = nil
             }
-            
-            ritmoCoreData.ritmoCategory = categoryCoreData
             
             CoreDataManager.shared.saveContext()
             
         } catch {
-            print("Ошибка при обновлении трекера: \(error)")
+            print("Ошибка при обновлении ритма: \(error)")
         }
     }
     
@@ -249,10 +257,10 @@ extension RitmoStore {
                 try context.save()
                 context.processPendingChanges()
             } else {
-                print("Трекер для удаления не найден")
+                print("Ритм для удаления не найден")
             }
         } catch {
-            print("Ошибка при удалении трекера: \(error)")
+            print("Ошибка при удалении ритма: \(error)")
         }
     }
 
@@ -262,7 +270,7 @@ extension RitmoStore {
 
         do {
             guard let ritmoCoreData = try context.fetch(request).first else {
-                print("Трекер для архивации не найден")
+                print("Ритм для архивации не найден")
                 return
             }
 
@@ -286,7 +294,7 @@ extension RitmoStore {
                 )
             }
         } catch {
-            print("Ошибка при изменении архива трекера: \(error)")
+            print("Ошибка при изменении архива ритма: \(error)")
         }
     }
 
