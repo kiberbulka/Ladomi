@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23C71" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="RitmoCategoryCoreData" representedClassName="RitmoCategoryCoreData" syncable="YES" codeGenerationType="class">
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="ritmos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="RitmoCoreData" inverseName="ritmoCategory" inverseEntity="RitmoCoreData"/>
+    </entity>
+    <entity name="RitmoCoreData" representedClassName="RitmoCoreData" syncable="YES" codeGenerationType="class">
+        <attribute name="archivedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="color" optional="YES" attributeType="String"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="emoji" optional="YES" attributeType="String"/>
+        <attribute name="eventDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isArchived" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isHabit" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="reminderTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="schedule" optional="YES" attributeType="String" valueTransformerName="DaysValueTransformer"/>
+        <relationship name="ritmoCategory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="RitmoCategoryCoreData" inverseName="ritmos" inverseEntity="RitmoCategoryCoreData"/>
+    </entity>
+    <entity name="RitmoRecordCoreData" representedClassName="RitmoRecordCoreData" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+    </entity>
+</model>
