@@ -62,7 +62,7 @@ private struct SmallTodayWidget: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Сегодня")
+            Text(NSLocalizedString("widget.today", comment: "Widget today title"))
                 .font(.headline)
                 .foregroundStyle(.primary)
 
@@ -81,10 +81,10 @@ private struct SmallTodayWidget: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             } else {
-                Text("Нет привычек")
+                Text(NSLocalizedString("widget.noRitmos", comment: "No ritmos in widget"))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary)
-                Text("Открой трекер")
+                Text(NSLocalizedString("widget.openTracker", comment: "Open app widget hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -93,7 +93,12 @@ private struct SmallTodayWidget: View {
     }
 
     private var statusText: String {
-        snapshot.completedCount == snapshot.totalCount ? "День закрыт" : "Осталось \(snapshot.totalCount - snapshot.completedCount)"
+        if snapshot.completedCount == snapshot.totalCount {
+            return NSLocalizedString("widget.dayClosed", comment: "All ritmos completed")
+        }
+
+        let format = NSLocalizedString("widget.remainingFormat", comment: "Remaining ritmos count")
+        return String(format: format, snapshot.totalCount - snapshot.completedCount)
     }
 }
 
@@ -103,7 +108,7 @@ private struct MediumTodayWidget: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Сегодня")
+                Text(NSLocalizedString("widget.today", comment: "Widget today title"))
                     .font(.headline)
 
                 Text(snapshot.hasRitmos ? "\(snapshot.completedCount)/\(snapshot.totalCount)" : "0/0")
@@ -112,7 +117,9 @@ private struct MediumTodayWidget: View {
                 ProgressView(value: snapshot.progress)
                     .tint(.blue)
 
-                Text(snapshot.completedCount == snapshot.totalCount && snapshot.hasRitmos ? "День закрыт" : "План на день")
+                Text(snapshot.completedCount == snapshot.totalCount && snapshot.hasRitmos
+                     ? NSLocalizedString("widget.dayClosed", comment: "All ritmos completed")
+                     : NSLocalizedString("widget.dayPlan", comment: "Day plan widget status"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -121,7 +128,7 @@ private struct MediumTodayWidget: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 if snapshot.items.isEmpty {
-                    Text("Открой приложение, чтобы обновить виджет")
+                    Text(NSLocalizedString("widget.openAppToUpdate", comment: "Open app to update widget"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(3)
@@ -186,7 +193,7 @@ private struct CircularTodayWidget: View {
 
     var body: some View {
         Gauge(value: snapshot.progress) {
-            Text("Сегодня")
+            Text(NSLocalizedString("widget.today", comment: "Widget today title"))
         } currentValueLabel: {
             Text(snapshot.hasRitmos ? "\(snapshot.completedCount)/\(snapshot.totalCount)" : "0")
                 .font(.caption2.weight(.bold))
@@ -200,7 +207,7 @@ private struct RectangularTodayWidget: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Сегодня")
+            Text(NSLocalizedString("widget.today", comment: "Widget today title"))
                 .font(.caption.weight(.semibold))
 
             Text(titleText)
@@ -212,15 +219,25 @@ private struct RectangularTodayWidget: View {
     }
 
     private var titleText: String {
-        snapshot.hasRitmos ? "\(snapshot.completedCount) из \(snapshot.totalCount)" : "Нет привычек"
+        guard snapshot.hasRitmos else {
+            return NSLocalizedString("widget.noRitmos", comment: "No ritmos in widget")
+        }
+
+        let format = NSLocalizedString("widget.progressFormat", comment: "Completed out of total widget progress")
+        return String(format: format, snapshot.completedCount, snapshot.totalCount)
     }
 
     private var subtitleText: String {
         guard snapshot.hasRitmos else {
-            return "Открой приложение"
+            return NSLocalizedString("widget.openApp", comment: "Open app widget hint")
         }
 
-        return snapshot.completedCount == snapshot.totalCount ? "День закрыт" : "Осталось \(snapshot.totalCount - snapshot.completedCount)"
+        if snapshot.completedCount == snapshot.totalCount {
+            return NSLocalizedString("widget.dayClosed", comment: "All ritmos completed")
+        }
+
+        let format = NSLocalizedString("widget.remainingFormat", comment: "Remaining ritmos count")
+        return String(format: format, snapshot.totalCount - snapshot.completedCount)
     }
 }
 
@@ -228,7 +245,16 @@ private struct InlineTodayWidget: View {
     let snapshot: RitmoTodayWidgetSnapshot
 
     var body: some View {
-        Text(snapshot.hasRitmos ? "Сегодня \(snapshot.completedCount)/\(snapshot.totalCount)" : "Сегодня нет привычек")
+        Text(inlineText)
+    }
+
+    private var inlineText: String {
+        if snapshot.hasRitmos {
+            let format = NSLocalizedString("widget.inlineProgressFormat", comment: "Inline widget progress")
+            return String(format: format, snapshot.completedCount, snapshot.totalCount)
+        }
+
+        return NSLocalizedString("widget.inlineEmpty", comment: "Inline widget empty state")
     }
 }
 
@@ -240,8 +266,8 @@ struct TodayProgressWidget: Widget {
         StaticConfiguration(kind: kind, provider: TodayProgressProvider()) { entry in
             TodayProgressWidgetView(entry: entry)
         }
-        .configurationDisplayName("Сегодня")
-        .description("Прогресс привычек на сегодня.")
+        .configurationDisplayName(NSLocalizedString("widget.displayName", comment: "Widget display name"))
+        .description(NSLocalizedString("widget.description", comment: "Widget description"))
         .supportedFamilies([
             .systemSmall,
             .systemMedium,

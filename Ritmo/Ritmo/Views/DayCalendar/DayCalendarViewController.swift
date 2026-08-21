@@ -9,6 +9,7 @@ final class DayCalendarViewController: UIViewController {
     fileprivate struct DayActivity {
         let habitCount: Int
         let eventCount: Int
+        let stopListSlipCount: Int
         let ritmoColors: [UIColor]
 
         var totalCount: Int {
@@ -93,12 +94,14 @@ final class DayCalendarViewController: UIViewController {
 
     private lazy var monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = .appPreferred
         formatter.setLocalizedDateFormatFromTemplate("LLLL yyyy")
         return formatter
     }()
 
     private lazy var dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = .appPreferred
         formatter.dateStyle = .long
         formatter.timeStyle = .none
         return formatter
@@ -201,6 +204,11 @@ final class DayCalendarViewController: UIViewController {
         title: NSLocalizedString("calendar.totalCompleted", comment: "Total completed title")
     )
 
+    private lazy var stopListSummaryView = DaySummaryView(
+        title: NSLocalizedString("calendar.stopListSlips", comment: "Stop-list slips title"),
+        accentColor: UIColor.ypRed.withAlphaComponent(0.12)
+    )
+
     private lazy var moodTitleLabel: UILabel = {
         let label = UILabel()
         label.text = NSLocalizedString("calendar.moodTitle", comment: "Mood selector title")
@@ -231,9 +239,26 @@ final class DayCalendarViewController: UIViewController {
         return stackView
     }()
 
+    private lazy var completedTitleLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("calendar.completedList.title", comment: "Completed ritmos list title")
+        label.font = .ritmoBold(16)
+        label.textColor = .ypBlack
+        return label
+    }()
+
+    private lazy var completedListStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.spacing = 8
+        return stackView
+    }()
+
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 104, right: 0)
+        scrollView.verticalScrollIndicatorInsets = scrollView.contentInset
         return scrollView
     }()
 
@@ -264,12 +289,12 @@ final class DayCalendarViewController: UIViewController {
             contentView.addSubview($0)
         }
 
-        [selectedDateLabel, summaryStackView, moodTitleLabel, moodStackView].forEach {
+        [selectedDateLabel, summaryStackView, moodTitleLabel, moodStackView, completedTitleLabel, completedListStackView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             detailView.addSubview($0)
         }
 
-        [habitSummaryView, eventSummaryView, totalSummaryView].forEach {
+        [habitSummaryView, eventSummaryView, totalSummaryView, stopListSummaryView].forEach {
             summaryStackView.addArrangedSubview($0)
         }
 
@@ -279,11 +304,11 @@ final class DayCalendarViewController: UIViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 44),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -332,7 +357,15 @@ final class DayCalendarViewController: UIViewController {
             moodStackView.leadingAnchor.constraint(equalTo: detailView.leadingAnchor, constant: 12),
             moodStackView.trailingAnchor.constraint(equalTo: detailView.trailingAnchor, constant: -12),
             moodStackView.heightAnchor.constraint(equalToConstant: 36),
-            moodStackView.bottomAnchor.constraint(equalTo: detailView.bottomAnchor, constant: -16)
+
+            completedTitleLabel.topAnchor.constraint(equalTo: moodStackView.bottomAnchor, constant: 18),
+            completedTitleLabel.leadingAnchor.constraint(equalTo: detailView.leadingAnchor, constant: 16),
+            completedTitleLabel.trailingAnchor.constraint(equalTo: detailView.trailingAnchor, constant: -16),
+
+            completedListStackView.topAnchor.constraint(equalTo: completedTitleLabel.bottomAnchor, constant: 10),
+            completedListStackView.leadingAnchor.constraint(equalTo: detailView.leadingAnchor, constant: 12),
+            completedListStackView.trailingAnchor.constraint(equalTo: detailView.trailingAnchor, constant: -12),
+            completedListStackView.bottomAnchor.constraint(equalTo: detailView.bottomAnchor, constant: -16)
         ])
     }
 
@@ -401,9 +434,15 @@ final class DayCalendarViewController: UIViewController {
         let records = recordsByDate[startOfDay(for: date)] ?? []
         var habitCount = 0
         var eventCount = 0
+        var stopListSlipCount = 0
 
         records.forEach { record in
             guard let ritmo = ritmoByID[record.ritmoID] else {
+                return
+            }
+
+            if ritmo.isStopList {
+                stopListSlipCount += 1
                 return
             }
 
@@ -414,11 +453,20 @@ final class DayCalendarViewController: UIViewController {
             }
         }
 
-        let ritmoColors = records.compactMap { record in
-            ritmoByID[record.ritmoID]?.color
+        let ritmoColors: [UIColor] = records.compactMap { record in
+            guard let ritmo = ritmoByID[record.ritmoID], !ritmo.isStopList else {
+                return nil
+            }
+
+            return ritmo.color
         }
 
-        return DayActivity(habitCount: habitCount, eventCount: eventCount, ritmoColors: ritmoColors)
+        return DayActivity(
+            habitCount: habitCount,
+            eventCount: eventCount,
+            stopListSlipCount: stopListSlipCount,
+            ritmoColors: ritmoColors
+        )
     }
 
     private func updateSelectedDayDetails() {
@@ -428,7 +476,46 @@ final class DayCalendarViewController: UIViewController {
         habitSummaryView.configure(value: activity.habitCount)
         eventSummaryView.configure(value: activity.eventCount)
         totalSummaryView.configure(value: activity.totalCount)
+        stopListSummaryView.configure(value: activity.stopListSlipCount)
         updateMoodButtons()
+        updateCompletedList(for: selectedDay)
+    }
+
+    private func updateCompletedList(for date: Date) {
+        completedListStackView.arrangedSubviews.forEach {
+            completedListStackView.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        let records = recordsByDate[startOfDay(for: date)] ?? []
+        let ritmos = records.compactMap { ritmoByID[$0.ritmoID] }
+
+        guard !ritmos.isEmpty else {
+            completedListStackView.addArrangedSubview(
+                DayCompletedRitmoRow.empty(
+                    text: NSLocalizedString("calendar.completedList.empty", comment: "No completed ritmos")
+                )
+            )
+            return
+        }
+
+        ritmos
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .forEach { ritmo in
+                let title = ritmo.isStopList
+                    ? String(
+                        format: NSLocalizedString("calendar.completedList.stopListFormat", comment: "Stop-list slip row"),
+                        ritmo.name
+                    )
+                    : ritmo.name
+                completedListStackView.addArrangedSubview(
+                    DayCompletedRitmoRow(
+                        emoji: ritmo.emoji,
+                        title: title,
+                        color: ritmo.isStopList ? .ypRed : ritmo.color
+                    )
+                )
+            }
     }
 
     private func updateMoodButtons() {
@@ -552,12 +639,18 @@ extension DayCalendarViewController: UICollectionViewDelegateFlowLayout {
 
 private final class DayCalendarCell: UICollectionViewCell {
     static let reuseIdentifier = "DayCalendarCell"
+    private static let maxVisibleRitmoDots = 4
+    private static let maxVisibleRitmoDotsWithStopList = 2
+    private var moodWidthConstraint: NSLayoutConstraint?
 
     private let dateLabel: UILabel = {
         let label = UILabel()
         label.font = .ritmoBold(14)
         label.textColor = .ypBlack
-        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.72
+        label.lineBreakMode = .byClipping
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
     }()
 
@@ -567,7 +660,7 @@ private final class DayCalendarCell: UICollectionViewCell {
         label.textAlignment = .right
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.85
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return label
     }()
 
@@ -582,10 +675,38 @@ private final class DayCalendarCell: UICollectionViewCell {
 
     private let moreCountLabel: UILabel = {
         let label = UILabel()
-        label.font = .ritmoBold(10)
-        label.textColor = .ypBlack
+        label.font = .ritmoBold(8)
+        label.textColor = UIColor.ypBlack.withAlphaComponent(0.58)
         label.textAlignment = .center
         return label
+    }()
+
+    private let stopListDotView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .ypRed
+        view.layer.cornerRadius = 3
+        view.layer.masksToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            view.widthAnchor.constraint(equalToConstant: 6),
+            view.heightAnchor.constraint(equalToConstant: 6)
+        ])
+        return view
+    }()
+
+    private let stopListDividerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.ypLightGray.withAlphaComponent(0.9)
+        view.layer.cornerRadius = 0.5
+        view.layer.masksToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            view.widthAnchor.constraint(equalToConstant: 1),
+            view.heightAnchor.constraint(equalToConstant: 8)
+        ])
+        return view
     }()
 
     override init(frame: CGRect) {
@@ -604,11 +725,10 @@ private final class DayCalendarCell: UICollectionViewCell {
         NSLayoutConstraint.activate([
             dateLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 7),
             dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 7),
-            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: moodLabel.leadingAnchor, constant: -2),
+            dateLabel.trailingAnchor.constraint(lessThanOrEqualTo: moodLabel.leadingAnchor),
 
             moodLabel.centerYAnchor.constraint(equalTo: dateLabel.centerYAnchor),
             moodLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -5),
-            moodLabel.widthAnchor.constraint(equalToConstant: 16),
 
             dotsStackView.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 4),
             dotsStackView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -4),
@@ -616,6 +736,10 @@ private final class DayCalendarCell: UICollectionViewCell {
             dotsStackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -9),
             dotsStackView.heightAnchor.constraint(equalToConstant: 8)
         ])
+
+        let moodWidthConstraint = moodLabel.widthAnchor.constraint(equalToConstant: 0)
+        moodWidthConstraint.isActive = true
+        self.moodWidthConstraint = moodWidthConstraint
     }
 
     required init?(coder: NSCoder) {
@@ -633,7 +757,11 @@ private final class DayCalendarCell: UICollectionViewCell {
         let dayNumber = Calendar.current.component(.day, from: date)
         dateLabel.text = "\(dayNumber)"
         moodLabel.text = mood?.emoji
-        configureDots(with: activity.ritmoColors)
+        moodWidthConstraint?.constant = mood == nil ? 0 : 18
+        configureDots(
+            with: activity.ritmoColors,
+            hasStopListSlips: activity.stopListSlipCount > 0
+        )
 
         let alpha: CGFloat = isCurrentMonth ? 1 : 0.35
         contentView.alpha = alpha
@@ -642,28 +770,39 @@ private final class DayCalendarCell: UICollectionViewCell {
         dateLabel.textColor = isSelected ? .ypBlue : .ypBlack
     }
 
-    private func configureDots(with colors: [UIColor]) {
+    private func configureDots(with colors: [UIColor], hasStopListSlips: Bool) {
         dotsStackView.arrangedSubviews.forEach { view in
             dotsStackView.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
 
-        guard !colors.isEmpty else {
+        stopListDotView.isHidden = !hasStopListSlips
+        stopListDividerView.isHidden = !(hasStopListSlips && !colors.isEmpty)
+
+        guard !colors.isEmpty || hasStopListSlips else {
             return
         }
 
-        let visibleColors = Array(colors.prefix(4))
+        let maxVisibleDots = hasStopListSlips
+            ? Self.maxVisibleRitmoDotsWithStopList
+            : Self.maxVisibleRitmoDots
+        let visibleColors = Array(colors.prefix(maxVisibleDots))
         visibleColors.forEach { color in
             dotsStackView.addArrangedSubview(makeDotView(color: color))
         }
 
         let hiddenCount = colors.count - visibleColors.count
-        guard hiddenCount > 0 else {
-            return
+        if hiddenCount > 0 {
+            moreCountLabel.text = "+\(hiddenCount)"
+            dotsStackView.addArrangedSubview(moreCountLabel)
         }
 
-        moreCountLabel.text = "+\(hiddenCount)"
-        dotsStackView.addArrangedSubview(moreCountLabel)
+        if hasStopListSlips {
+            if !colors.isEmpty {
+                dotsStackView.addArrangedSubview(stopListDividerView)
+            }
+            dotsStackView.addArrangedSubview(stopListDotView)
+        }
     }
 
     private func makeDotView(color: UIColor) -> UIView {
@@ -712,9 +851,9 @@ private final class DaySummaryView: UIView {
         return label
     }()
 
-    init(title: String) {
+    init(title: String, accentColor: UIColor = .ypWhite) {
         super.init(frame: .zero)
-        backgroundColor = .ypWhite
+        backgroundColor = accentColor
         layer.cornerRadius = 12
         layer.masksToBounds = true
         titleLabel.text = title
@@ -742,5 +881,73 @@ private final class DaySummaryView: UIView {
 
     func configure(value: Int) {
         valueLabel.text = "\(value)"
+    }
+}
+
+private final class DayCompletedRitmoRow: UIView {
+    private let emojiLabel: UILabel = {
+        let label = UILabel()
+        label.font = .ritmoRegular(18)
+        label.textAlignment = .center
+        return label
+    }()
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .ritmoMedium(13)
+        label.textColor = .ypBlack
+        label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        return label
+    }()
+
+    private let dotView: UIView = {
+        let view = UIView()
+        view.layer.cornerRadius = 4
+        view.layer.masksToBounds = true
+        return view
+    }()
+
+    init(emoji: String, title: String, color: UIColor) {
+        super.init(frame: .zero)
+        backgroundColor = .ypWhite
+        layer.cornerRadius = 12
+        layer.masksToBounds = true
+        emojiLabel.text = emoji
+        titleLabel.text = title
+        dotView.backgroundColor = color
+        setupUI()
+    }
+
+    static func empty(text: String) -> DayCompletedRitmoRow {
+        DayCompletedRitmoRow(emoji: "", title: text, color: .ypLightGray)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupUI() {
+        [emojiLabel, titleLabel, dotView].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 40),
+
+            emojiLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            emojiLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            emojiLabel.widthAnchor.constraint(equalToConstant: 24),
+
+            titleLabel.leadingAnchor.constraint(equalTo: emojiLabel.trailingAnchor, constant: 10),
+            titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+
+            dotView.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 10),
+            dotView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            dotView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            dotView.widthAnchor.constraint(equalToConstant: 8),
+            dotView.heightAnchor.constraint(equalToConstant: 8)
+        ])
     }
 }

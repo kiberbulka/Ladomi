@@ -8,7 +8,7 @@ final class CreateRitmoViewController: UIViewController {
     
     private lazy var createHabitButton: UIButton = {
         let button = UIButton(type: .system)
-        let buttonText = NSLocalizedString("habit", comment: "Кнопка на экране выбора создания трекера или привычки")
+        let buttonText = NSLocalizedString("habit", comment: "Кнопка на экране выбора создания ритма или привычки")
         button.setTitle(buttonText, for: .normal)
         button.backgroundColor = .ypWhite
         button.setTitleColor(.ypBlack, for: .normal)
@@ -26,7 +26,7 @@ final class CreateRitmoViewController: UIViewController {
     
     private lazy var createEventButton: UIButton = {
         let button = UIButton(type: .system)
-        let buttonText = NSLocalizedString("irregularEvent", comment: "Кнопка на экране выбора создания трекера или привычки")
+        let buttonText = NSLocalizedString("irregularEvent", comment: "Кнопка на экране выбора создания ритма или привычки")
         button.setTitle(buttonText, for: .normal)
         button.backgroundColor = .ypWhite
         button.setTitleColor(.ypBlack, for: .normal)
@@ -44,7 +44,7 @@ final class CreateRitmoViewController: UIViewController {
     
     private lazy var createLabel: UILabel = {
         let label = UILabel()
-        let labelText = NSLocalizedString("createRitmo.title", comment: "Заголовок экрана создания трекера")
+        let labelText = NSLocalizedString("createRitmo.title", comment: "Заголовок экрана создания ритма")
         label.text = labelText
         label.font = .ritmoBold(32)
         label.textColor = .ypBlack

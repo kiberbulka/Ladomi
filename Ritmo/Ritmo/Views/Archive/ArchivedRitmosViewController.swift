@@ -20,6 +20,7 @@ final class ArchivedRitmosViewController: UIViewController {
 
     private lazy var dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = .appPreferred
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter

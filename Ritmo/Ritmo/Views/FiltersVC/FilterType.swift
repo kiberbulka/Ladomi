@@ -9,7 +9,7 @@ enum FilterType: String, CaseIterable {
     var title: String {
         switch self {
         case .all: 
-            return NSLocalizedString("allRitmos", comment: "ячейка все трекеры")
+            return NSLocalizedString("allRitmos", comment: "ячейка все ритмы")
         case .habits:
             return NSLocalizedString("habitsFilter", comment: "")
         case .events:

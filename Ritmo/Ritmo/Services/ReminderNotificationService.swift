@@ -19,7 +19,7 @@ final class ReminderNotificationService {
     private init() {}
 
     func scheduleReminder(for ritmo: Ritmo, completedRecords: [RitmoRecord] = []) {
-        guard !ritmo.isArchived, ritmo.reminderTime != nil else {
+        guard !ritmo.isArchived, !ritmo.isStopList, ritmo.reminderTime != nil else {
             removeReminder(for: ritmo.id)
             return
         }
@@ -70,6 +70,10 @@ final class ReminderNotificationService {
 
     func scheduleSoftReminderIfNeeded(for ritmo: Ritmo, completedRecords: [RitmoRecord], date: Date = Date()) {
         removeSoftReminder(for: ritmo.id, date: date)
+
+        guard !ritmo.isStopList else {
+            return
+        }
 
         guard shouldScheduleSoftReminder(for: ritmo, completedRecords: completedRecords, date: date),
               let triggerDate = softReminderDate(for: date) else {

@@ -46,11 +46,11 @@ struct RitmoTodayWidgetSnapshot: Codable, Hashable {
         completedCount: 2,
         totalCount: 5,
         items: [
-            RitmoWidgetItem(emoji: "💧", title: "Вода", timeText: "09:00", isCompleted: true),
-            RitmoWidgetItem(emoji: "📖", title: "Чтение", timeText: "18:30", isCompleted: true),
-            RitmoWidgetItem(emoji: "🧘", title: "Медитация", timeText: "21:00", isCompleted: false),
-            RitmoWidgetItem(emoji: "💊", title: "Купить витамины", timeText: nil, isCompleted: false),
-            RitmoWidgetItem(emoji: "📦", title: "Забрать заказ", timeText: "22:00", isCompleted: false)
+            RitmoWidgetItem(emoji: "💧", title: NSLocalizedString("widget.preview.water", comment: "Widget preview item"), timeText: "09:00", isCompleted: true),
+            RitmoWidgetItem(emoji: "📖", title: NSLocalizedString("widget.preview.reading", comment: "Widget preview item"), timeText: "18:30", isCompleted: true),
+            RitmoWidgetItem(emoji: "🧘", title: NSLocalizedString("widget.preview.meditation", comment: "Widget preview item"), timeText: "21:00", isCompleted: false),
+            RitmoWidgetItem(emoji: "💊", title: NSLocalizedString("widget.preview.vitamins", comment: "Widget preview item"), timeText: nil, isCompleted: false),
+            RitmoWidgetItem(emoji: "📦", title: NSLocalizedString("widget.preview.order", comment: "Widget preview item"), timeText: "22:00", isCompleted: false)
         ]
     )
 }

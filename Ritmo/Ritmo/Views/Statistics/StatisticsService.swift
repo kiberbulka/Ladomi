@@ -105,7 +105,7 @@ final class StatisticsService {
     // MARK: - Public Methods
     
     func fetchStatistics() -> StatisticsData {
-        let ritmos = ritmoStore.fetchRitmos().filter { !$0.isArchived }
+        let ritmos = ritmoStore.fetchRitmos().filter { !$0.isArchived && !$0.isStopList }
         let ritmoIDs = Set(ritmos.map { $0.id })
         
         let records = ritmoRecordStore.fetch().filter { ritmoIDs.contains($0.ritmoID) }
@@ -161,9 +161,12 @@ final class StatisticsService {
     }
 
     func fetchAnalytics() -> AnalyticsData {
-        let ritmos = ritmoStore.fetchRitmos()
+        let allRitmos = ritmoStore.fetchRitmos()
+        let ritmos = allRitmos.filter { !$0.isStopList }
         let ritmoIDs = Set(ritmos.map { $0.id })
-        let records = ritmoRecordStore.fetch().filter { ritmoIDs.contains($0.ritmoID) }
+        let stopListIDs = Set(allRitmos.filter { $0.isStopList }.map { $0.id })
+        let allRecords = ritmoRecordStore.fetch()
+        let records = allRecords.filter { ritmoIDs.contains($0.ritmoID) }
         let today = calendar.startOfDay(for: Date())
         let periodStart = statisticsPeriodStart(ritmos: ritmos, records: records, today: today)
         let periodDates = dates(from: periodStart, through: today)
@@ -171,6 +174,14 @@ final class StatisticsService {
         let eventCompletionDates = makeEventCompletionDates(ritmos: ritmos, records: records)
         let ritmoStartDates = makeRitmoStartDates(ritmos: ritmos, records: records)
         let moodsByDate = fetchMoodsByDate()
+        let stopListSlipCount = allRecords.filter { record in
+            guard stopListIDs.contains(record.ritmoID) else {
+                return false
+            }
+
+            let recordDate = calendar.startOfDay(for: record.date)
+            return recordDate >= periodStart && recordDate <= today
+        }.count
 
         let metrics = periodDates.map { date in
             let plannedIDs = plannedRitmoIDs(
@@ -199,7 +210,11 @@ final class StatisticsService {
             analyzedDays: plannedMetrics.count,
             moodDays: moodMetrics.count,
             averageCompletionRate: averageCompletionRate,
-            insights: makeInsights(metrics: plannedMetrics, moodMetrics: moodMetrics)
+            insights: makeInsights(
+                metrics: plannedMetrics,
+                moodMetrics: moodMetrics,
+                stopListSlipCount: stopListSlipCount
+            )
         )
     }
 
@@ -423,7 +438,11 @@ final class StatisticsService {
         moodDateFormatter.string(from: date)
     }
 
-    private func makeInsights(metrics: [DayMetric], moodMetrics: [DayMetric]) -> [AnalyticsInsight] {
+    private func makeInsights(
+        metrics: [DayMetric],
+        moodMetrics: [DayMetric],
+        stopListSlipCount: Int
+    ) -> [AnalyticsInsight] {
         guard !metrics.isEmpty else {
             return []
         }
@@ -431,6 +450,10 @@ final class StatisticsService {
         var insights: [AnalyticsInsight] = [
             makeOverviewInsight(metrics: metrics)
         ]
+
+        if let stopListInsight = makeStopListInsight(slipCount: stopListSlipCount) {
+            insights.append(stopListInsight)
+        }
 
         if let moodInsight = makeMoodInsight(metrics: moodMetrics) {
             insights.append(moodInsight)
@@ -466,6 +489,20 @@ final class StatisticsService {
             title: NSLocalizedString("analytics.overview.title", comment: "Analytics overview title"),
             value: "\(averageRate)%",
             detail: String(format: format, metrics.count, completedTotal, plannedTotal)
+        )
+    }
+
+    private func makeStopListInsight(slipCount: Int) -> AnalyticsInsight? {
+        guard slipCount > 0 else {
+            return nil
+        }
+
+        let slipWord = localizedSlipWord(for: slipCount)
+        let format = NSLocalizedString("analytics.stopList.detail", comment: "Stop-list slips analytics detail")
+        return AnalyticsInsight(
+            title: NSLocalizedString("analytics.stopList.title", comment: "Stop-list slips analytics title"),
+            value: "\(slipCount)",
+            detail: String(format: format, slipCount, slipWord)
         )
     }
 
@@ -596,6 +633,18 @@ final class StatisticsService {
 
     private func percentage(_ value: Double) -> Int {
         Int(round(value * 100))
+    }
+
+    private func localizedSlipWord(for count: Int) -> String {
+        let remainder10 = count % 10
+        let remainder100 = count % 100
+        if remainder10 == 1 && remainder100 != 11 {
+            return NSLocalizedString("analytics.stopList.slip.one", comment: "One stop-list slip")
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            return NSLocalizedString("analytics.stopList.slip.few", comment: "Few stop-list slips")
+        } else {
+            return NSLocalizedString("analytics.stopList.slip.many", comment: "Many stop-list slips")
+        }
     }
 
     private func weekdayName(for weekday: Int) -> String {

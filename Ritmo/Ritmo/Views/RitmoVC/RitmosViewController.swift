@@ -1,6 +1,10 @@
 import UIKit
 
 class RitmosViewController: UIViewController {
+    private enum DashboardMode {
+        case ritmos
+        case stopList
+    }
     
     // MARK: - Private Properties
     
@@ -18,10 +22,14 @@ class RitmosViewController: UIViewController {
     private let ritmoStore = RitmoStore()
     private let ritmoRecordStore = RitmoRecordStore()
     private let hiddenFilterBottomInset: CGFloat = 24
+    private var filterChipHeightConstraint: NSLayoutConstraint!
+    private var filterChipTopConstraint: NSLayoutConstraint!
+    private var collectionViewTopConstraint: NSLayoutConstraint!
+    private var dashboardMode: DashboardMode = .ritmos
 
     private lazy var dateChipFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.locale = .appPreferred
         formatter.setLocalizedDateFormatFromTemplate("d MMM")
         return formatter
     }()
@@ -36,6 +44,7 @@ class RitmosViewController: UIViewController {
 
     private lazy var postponeActionDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = .appPreferred
         formatter.setLocalizedDateFormatFromTemplate("EEE, d MMM")
         return formatter
     }()
@@ -83,7 +92,7 @@ class RitmosViewController: UIViewController {
     
     private lazy var ritmoLabel: UILabel = {
         let label = UILabel()
-        let labelText = NSLocalizedString("ritmos.title", comment: "Заголовок на главном экране трекеров")
+        let labelText = NSLocalizedString("ritmos.title", comment: "Заголовок на главном экране ритмов")
         label.text = labelText
         label.font = .ritmoBold(32)
         label.textColor = .ypBlack
@@ -95,6 +104,26 @@ class RitmosViewController: UIViewController {
         label.font = .ritmoMedium(17)
         label.textColor = .ypLightGray
         return label
+    }()
+
+    private lazy var modeSegmentControl: UISegmentedControl = {
+        let control = UISegmentedControl(items: [
+            NSLocalizedString("dashboard.ritmos", comment: "Main dashboard ritmos mode"),
+            NSLocalizedString("dashboard.stopList", comment: "Main dashboard stop-list mode")
+        ])
+        control.selectedSegmentIndex = 0
+        control.selectedSegmentTintColor = .ypBlack
+        control.backgroundColor = .ypGray
+        control.setTitleTextAttributes([
+            .foregroundColor: UIColor.ypLightGray,
+            .font: UIFont.ritmoBold(15)
+        ], for: .normal)
+        control.setTitleTextAttributes([
+            .foregroundColor: UIColor.ypWhite,
+            .font: UIFont.ritmoBold(15)
+        ], for: .selected)
+        control.addTarget(self, action: #selector(modeSegmentDidChange), for: .valueChanged)
+        return control
     }()
     
     private lazy var datePicker: UIDatePicker = {
@@ -118,7 +147,10 @@ class RitmosViewController: UIViewController {
         return collectionView
     }()
 
-    private lazy var allFilterChip = makeFilterChip(title: "Все", action: #selector(allFilterChipDidTap))
+    private lazy var allFilterChip = makeFilterChip(
+        title: NSLocalizedString("filter.all", comment: "All filter chip"),
+        action: #selector(allFilterChipDidTap)
+    )
     private lazy var habitsFilterChip = makeFilterChip(
         title: NSLocalizedString("habitsFilter", comment: ""),
         action: #selector(habitsFilterChipDidTap)
@@ -203,7 +235,7 @@ class RitmosViewController: UIViewController {
     
     private lazy var placeholderLabel: UILabel = {
         let placeholderLabel = UILabel()
-        let placeholderText = NSLocalizedString("emptyState.title", comment: "Заглушка если трекеров нет")
+        let placeholderText = NSLocalizedString("emptyState.title", comment: "Заглушка если ритмов нет")
         placeholderLabel.text = placeholderText
         placeholderLabel.font = .ritmoMedium(12)
         placeholderLabel.textColor = .ypBlack
@@ -259,6 +291,7 @@ class RitmosViewController: UIViewController {
             dateButton,
             ritmoLabel,
             ritmoSubtitleLabel,
+            modeSegmentControl,
             searchStackView,
             filterChipScrollView,
             collectionView,
@@ -288,26 +321,38 @@ class RitmosViewController: UIViewController {
             ritmoSubtitleLabel.leadingAnchor.constraint(equalTo: ritmoLabel.leadingAnchor),
             ritmoSubtitleLabel.trailingAnchor.constraint(equalTo: ritmoLabel.trailingAnchor),
 
-            searchStackView.topAnchor.constraint(equalTo: ritmoSubtitleLabel.bottomAnchor, constant: 20),
+            modeSegmentControl.topAnchor.constraint(equalTo: ritmoSubtitleLabel.bottomAnchor, constant: 16),
+            modeSegmentControl.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            modeSegmentControl.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            modeSegmentControl.heightAnchor.constraint(equalToConstant: 44),
+
+            searchStackView.topAnchor.constraint(equalTo: modeSegmentControl.bottomAnchor, constant: 14),
             searchStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
             searchStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
 
-            filterChipScrollView.topAnchor.constraint(equalTo: searchStackView.bottomAnchor, constant: 14),
             filterChipScrollView.leadingAnchor.constraint(equalTo: searchStackView.leadingAnchor),
             filterChipScrollView.trailingAnchor.constraint(equalTo: searchStackView.trailingAnchor),
-            filterChipScrollView.heightAnchor.constraint(equalToConstant: 38),
 
             placeholderImage.heightAnchor.constraint(equalToConstant: 80),
             placeholderImage.widthAnchor.constraint(equalToConstant: 80),
             placeholderLabel.widthAnchor.constraint(lessThanOrEqualTo: collectionView.widthAnchor, constant: -40),
             placeholderStackView.centerXAnchor.constraint(equalTo: collectionView.centerXAnchor),
             placeholderStackView.centerYAnchor.constraint(equalTo: collectionView.centerYAnchor),
-            collectionView.topAnchor.constraint(equalTo: filterChipScrollView.bottomAnchor, constant: 6),
             collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor)
             
         ])
+
+        filterChipTopConstraint = filterChipScrollView.topAnchor.constraint(equalTo: searchStackView.bottomAnchor, constant: 14)
+        filterChipHeightConstraint = filterChipScrollView.heightAnchor.constraint(equalToConstant: 38)
+        collectionViewTopConstraint = collectionView.topAnchor.constraint(equalTo: filterChipScrollView.bottomAnchor, constant: 6)
+        NSLayoutConstraint.activate([
+            filterChipTopConstraint,
+            filterChipHeightConstraint,
+            collectionViewTopConstraint
+        ])
+        updateDashboardModeUI()
     }
     
     private func setupNavigationItem(){
@@ -371,7 +416,14 @@ class RitmosViewController: UIViewController {
 
     private func updateRitmoSubtitle() {
         let count = visibleCategories.reduce(0) { $0 + $1.ritmos.count }
-        ritmoSubtitleLabel.text = "\(count) \(habitWord(for: count)) сегодня"
+        switch dashboardMode {
+        case .ritmos:
+            let format = NSLocalizedString("dashboard.ritmos.subtitle", comment: "Main dashboard ritmos subtitle")
+            ritmoSubtitleLabel.text = String(format: format, count, habitWord(for: count))
+        case .stopList:
+            let format = NSLocalizedString("dashboard.stopList.subtitle", comment: "Stop-list dashboard subtitle")
+            ritmoSubtitleLabel.text = String(format: format, count, stopItemWord(for: count))
+        }
     }
 
     private func habitWord(for count: Int) -> String {
@@ -379,21 +431,43 @@ class RitmosViewController: UIViewController {
         let remainder100 = count % 100
 
         if remainder10 == 1 && remainder100 != 11 {
-            return "привычка"
+            return NSLocalizedString("habit.item.one", comment: "One habit item")
         } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
-            return "привычки"
+            return NSLocalizedString("habit.item.few", comment: "Few habit items")
         } else {
-            return "привычек"
+            return NSLocalizedString("habit.item.many", comment: "Many habit items")
+        }
+    }
+
+    private func stopItemWord(for count: Int) -> String {
+        let remainder10 = count % 10
+        let remainder100 = count % 100
+
+        if remainder10 == 1 && remainder100 != 11 {
+            return NSLocalizedString("stopList.item.one", comment: "One stop-list item")
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            return NSLocalizedString("stopList.item.few", comment: "Few stop-list items")
+        } else {
+            return NSLocalizedString("stopList.item.many", comment: "Many stop-list items")
         }
     }
     
     private func showPlaceholder() {
-        let hasAnyRitmos = categories.contains { !$0.ritmos.isEmpty }
+        let hasAnyRitmos: Bool
+        if dashboardMode == .stopList {
+            hasAnyRitmos = ritmos.contains { $0.isStopList }
+        } else {
+            hasAnyRitmos = categories.contains { category in
+                category.ritmos.contains { !$0.isStopList }
+            }
+        }
 
         if !hasAnyRitmos {
             placeholderStackView.isHidden = false
             placeholderImage.image = UIImage(named: "placeholder")
-            placeholderLabel.text = NSLocalizedString("emptyState.title", comment: "Заглушка если трекеров совсем нет")
+            placeholderLabel.text = dashboardMode == .stopList
+                ? NSLocalizedString("stopList.empty", comment: "Empty stop-list placeholder")
+                : NSLocalizedString("emptyState.title", comment: "Заглушка если ритмов совсем нет")
         } else if visibleCategories.isEmpty {
             placeholderStackView.isHidden = false
             placeholderImage.image = UIImage(named: "placeholder2")
@@ -421,6 +495,12 @@ class RitmosViewController: UIViewController {
 
     @objc private func notCompletedFilterChipDidTap() {
         selectedFilter = .notCompleted
+    }
+
+    @objc private func modeSegmentDidChange() {
+        dashboardMode = modeSegmentControl.selectedSegmentIndex == 1 ? .stopList : .ritmos
+        updateDashboardModeUI()
+        reloadVisibleCategories()
     }
 
     @objc private func dateButtonDidTap() {
@@ -484,6 +564,8 @@ class RitmosViewController: UIViewController {
         let createRitmoVC = NewHabitOrEventViewController()
         createRitmoVC.delegate = self
         createRitmoVC.selectedEventDate = datePicker.date
+        createRitmoVC.isStopList = dashboardMode == .stopList
+        createRitmoVC.isHabit = dashboardMode == .stopList ? false : true
         present(createRitmoVC, animated: true)
         AnalyticsService.shared.report(event: "click", screen: "Main", item: "add_track")
     }
@@ -492,11 +574,17 @@ class RitmosViewController: UIViewController {
     
     private func ritmoPassesAllFilters(_ ritmo: Ritmo, on date: Date, searchText: String) -> Bool {
         let calendar = Calendar.current
+        let modeCondition = dashboardMode == .stopList ? ritmo.isStopList : !ritmo.isStopList
+        guard modeCondition else {
+            return false
+        }
         
         let textCondition = searchText.isEmpty || ritmo.name.lowercased().contains(searchText.lowercased())
         
         let dateCondition: Bool
-        if isRitmoPostponedFrom(ritmo, on: date) {
+        if ritmo.isStopList {
+            dateCondition = calendar.startOfDay(for: date) >= calendar.startOfDay(for: ritmo.createdDate)
+        } else if isRitmoPostponedFrom(ritmo, on: date) {
             dateCondition = false
         } else if isRitmoPostponedTo(ritmo, on: date) {
             dateCondition = true
@@ -513,15 +601,19 @@ class RitmosViewController: UIViewController {
         }
         
         let filterCondition: Bool
-        switch selectedFilter {
-        case .habits:
-            filterCondition = ritmo.isHabit
-        case .events:
-            filterCondition = !ritmo.isHabit
-        case .notCompleted:
-            filterCondition = !isRitmoCompleted(ritmo, on: date)
-        case .all:
+        if dashboardMode == .stopList {
             filterCondition = true
+        } else {
+            switch selectedFilter {
+            case .habits:
+                filterCondition = ritmo.isHabit
+            case .events:
+                filterCondition = !ritmo.isHabit
+            case .notCompleted:
+                filterCondition = !isRitmoCompleted(ritmo, on: date)
+            case .all:
+                filterCondition = true
+            }
         }
         return textCondition && dateCondition && filterCondition
     }
@@ -537,18 +629,34 @@ class RitmosViewController: UIViewController {
         visibleCategories = []
 
         if !pinnedFilteredRitmos.isEmpty {
-            visibleCategories.append(RitmoCategory(title: "Закрепленные", ritmos: pinnedFilteredRitmos))
+            visibleCategories.append(
+                RitmoCategory(
+                    title: NSLocalizedString("pinnedRitmos", comment: "Pinned ritmos section title"),
+                    ritmos: pinnedFilteredRitmos
+                )
+            )
         }
 
-        let otherCategories = filteredCategories.compactMap { category -> RitmoCategory? in
-            let ritmos = category.ritmos.filter { ritmo in
+        if dashboardMode == .stopList {
+            let stopListRitmos = ritmos.filter { ritmo in
                 !pinnedRitmos.contains(where: { $0.id == ritmo.id }) &&
                 ritmoPassesAllFilters(ritmo, on: currentDate, searchText: searchText)
             }
-            return ritmos.isEmpty ? nil : RitmoCategory(title: category.title, ritmos: ritmos)
-        }
 
-        visibleCategories.append(contentsOf: otherCategories)
+            if !stopListRitmos.isEmpty {
+                visibleCategories.append(RitmoCategory(title: "", ritmos: stopListRitmos))
+            }
+        } else {
+            let otherCategories = filteredCategories.compactMap { category -> RitmoCategory? in
+                let ritmos = category.ritmos.filter { ritmo in
+                    !pinnedRitmos.contains(where: { $0.id == ritmo.id }) &&
+                    ritmoPassesAllFilters(ritmo, on: currentDate, searchText: searchText)
+                }
+                return ritmos.isEmpty ? nil : RitmoCategory(title: category.title, ritmos: ritmos)
+            }
+
+            visibleCategories.append(contentsOf: otherCategories)
+        }
 
         collectionView.reloadData()
         updateRitmoSubtitle()
@@ -559,6 +667,10 @@ class RitmosViewController: UIViewController {
     
     private func isRitmoActiveOnDate(_ ritmo: Ritmo, date: Date) -> Bool {
         let calendar = Calendar.current
+
+        if ritmo.isStopList {
+            return calendar.startOfDay(for: date) >= calendar.startOfDay(for: ritmo.createdDate)
+        }
 
         if isRitmoPostponedFrom(ritmo, on: date) {
             return false
@@ -603,6 +715,19 @@ class RitmosViewController: UIViewController {
         
     }
 
+    private func updateDashboardModeUI() {
+        let isStopListMode = dashboardMode == .stopList
+        selectedFilter = .all
+        ritmoLabel.text = isStopListMode
+            ? NSLocalizedString("stopList.title", comment: "Stop-list screen title")
+            : NSLocalizedString("ritmos.title", comment: "Main screen title")
+        filterChipScrollView.isHidden = isStopListMode
+        filterChipScrollView.alpha = isStopListMode ? 0 : 1
+        filterChipTopConstraint.constant = isStopListMode ? 6 : 14
+        filterChipHeightConstraint.constant = isStopListMode ? 0 : 38
+        collectionViewTopConstraint.constant = isStopListMode ? 10 : 6
+    }
+
     private func updateCollectionViewBottomInset() {
         let bottomInset = hiddenFilterBottomInset
         guard collectionView.contentInset.bottom != bottomInset else {
@@ -640,7 +765,7 @@ class RitmosViewController: UIViewController {
     }
 
     private func refreshReminders() {
-        ritmos.forEach {
+        ritmos.filter { !$0.isStopList }.forEach {
             ReminderNotificationService.shared.scheduleReminder(
                 for: $0,
                 completedRecords: completedRitmos
@@ -651,7 +776,7 @@ class RitmosViewController: UIViewController {
     }
 
     private func scheduleSoftRemindersForToday() {
-        ritmos.forEach {
+        ritmos.filter { !$0.isStopList }.forEach {
             ReminderNotificationService.shared.scheduleSoftReminderIfNeeded(
                 for: $0,
                 completedRecords: completedRitmos
@@ -687,6 +812,20 @@ class RitmosViewController: UIViewController {
             $0.ritmoID == ritmo.id && calendar.isDate($0.date, inSameDayAs: date)
         }
     }
+
+    private func stopListCleanDays(for ritmo: Ritmo, on date: Date) -> Int {
+        let calendar = Calendar.current
+        let targetDate = calendar.startOfDay(for: date)
+        let createdDate = calendar.startOfDay(for: ritmo.createdDate)
+        let latestSlipDate = completedRitmos
+            .filter { $0.ritmoID == ritmo.id && calendar.startOfDay(for: $0.date) <= targetDate }
+            .map { calendar.startOfDay(for: $0.date) }
+            .max()
+        let anchorDate = latestSlipDate ?? createdDate
+        let days = calendar.dateComponents([.day], from: anchorDate, to: targetDate).day ?? 0
+
+        return max(0, days)
+    }
     
     private func openEditScreen(with ritmo: Ritmo) {
         let editVC = NewHabitOrEventViewController()
@@ -694,6 +833,7 @@ class RitmosViewController: UIViewController {
         editVC.ritmoToEdit = ritmo
         
         editVC.isHabit = ritmo.isHabit
+        editVC.isStopList = ritmo.isStopList
         self.present(editVC, animated: true)
     }
     
@@ -703,7 +843,7 @@ class RitmosViewController: UIViewController {
         let visualRitmo = visibleCategories[indexPath.section].ritmos[indexPath.item]
 
         guard let ritmoToDelete = ritmoStore.ritmo(with: visualRitmo.id) else {
-            print("Не найден трекер в базе")
+            print("Не найден ритм в базе")
             return
         }
 
@@ -855,16 +995,18 @@ extension RitmosViewController: UICollectionViewDelegate {
         let visualRitmo = visibleCategories[indexPath.section].ritmos[indexPath.item]
   
         guard let ritmo = ritmoStore.ritmo(with: visualRitmo.id) else {
-            print("Не найден трекер в базе")
+            print("Не найден ритм в базе")
             return nil
         }
 
         let completedDays = completedRitmos.filter { $0.ritmoID == ritmo.id }.count
 
-        guard let ritmoCategory = ritmoCategoryStore.loadCategories().first(where: { category in
+        let ritmoCategory = ritmoCategoryStore.loadCategories().first(where: { category in
             category.ritmos.contains(where: { $0.id == ritmo.id })
-        }) else {
-            print("Категория трекера не найдена")
+        })
+
+        guard ritmo.isStopList || ritmoCategory != nil else {
+            print("Категория ритма не найдена")
             return nil
         }
 
@@ -875,6 +1017,7 @@ extension RitmosViewController: UICollectionViewDelegate {
                 editVC.ritmoToEdit = ritmo
                 editVC.completedDays = completedDays
                 editVC.isHabit = ritmo.isHabit
+                editVC.isStopList = ritmo.isStopList
                 editVC.ritmoCategoryToEdit = ritmoCategory
 
                 self?.present(editVC, animated: true)
@@ -906,7 +1049,10 @@ extension RitmosViewController: UICollectionViewDelegate {
                 self?.togglePinRitmo(ritmo)
             }
 
-            return UIMenu(title: "", children: [pinAction, postponeAction, editAction, archiveAction, deleteAction])
+            let actions: [UIMenuElement] = ritmo.isStopList
+                ? [pinAction, editAction, archiveAction, deleteAction]
+                : [pinAction, postponeAction, editAction, archiveAction, deleteAction]
+            return UIMenu(title: "", children: actions)
         }
     }
 
@@ -950,9 +1096,11 @@ extension RitmosViewController: UICollectionViewDataSource {
         let ritmo = visibleCategories[indexPath.section].ritmos[indexPath.item]
         cell.delegate = self
         let isCompletedToday = isRitmoCompletedToday(id: ritmo.id)
-        let completedDays = completedRitmos.filter { $0.ritmoID == ritmo.id}.count
+        let displayDays = ritmo.isStopList
+            ? stopListCleanDays(for: ritmo, on: datePicker.date)
+            : completedRitmos.filter { $0.ritmoID == ritmo.id}.count
         let isPinned = pinnedRitmos.contains { $0.id == ritmo.id }
-        cell.configureCell(ritmo: ritmo, isCompletedToday: isCompletedToday, completedDays: completedDays, indexPath: indexPath, isPinned: isPinned)
+        cell.configureCell(ritmo: ritmo, isCompletedToday: isCompletedToday, displayDays: displayDays, indexPath: indexPath, isPinned: isPinned)
         return cell
     }
     
@@ -977,6 +1125,12 @@ extension RitmosViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         referenceSizeForHeaderInSection section: Int) -> CGSize {
+        if dashboardMode == .stopList,
+           visibleCategories.indices.contains(section),
+           visibleCategories[section].title.isEmpty {
+            return .zero
+        }
+
         return CGSize(width: view.frame.width, height: 36)
     }
 }
@@ -1005,7 +1159,10 @@ extension RitmosViewController: RitmoCellDelegate {
             try ritmoRecordStore.add(ritmoRecord: ritmoRecord)
             completedRitmos.append(ritmoRecord)
             if let ritmo = ritmoStore.ritmo(with: id) {
-                if ritmo.isHabit {
+                if ritmo.isStopList {
+                    collectionView.reloadItems(at: [indexPath])
+                    return
+                } else if ritmo.isHabit {
                     ReminderNotificationService.shared.removeReminder(for: id, on: datePicker.date)
                     updateTodayWidgetSnapshot()
                 } else {
@@ -1039,7 +1196,9 @@ extension RitmosViewController: RitmoCellDelegate {
         }
 
         if let ritmo = ritmoStore.ritmo(with: id) {
-            if ritmo.isHabit {
+            if ritmo.isStopList {
+                collectionView.reloadItems(at: [indexPath])
+            } else if ritmo.isHabit {
                 ReminderNotificationService.shared.scheduleReminder(
                     for: ritmo,
                     completedRecords: completedRitmos

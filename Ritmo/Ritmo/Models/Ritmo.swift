@@ -12,6 +12,7 @@ struct Ritmo {
     let createdDate: Date
     let archivedDate: Date?
     let isArchived: Bool
+    let isStopList: Bool
 
     init(
         id: UUID,
@@ -24,7 +25,8 @@ struct Ritmo {
         eventDate: Date? = nil,
         createdDate: Date = Date(),
         archivedDate: Date? = nil,
-        isArchived: Bool = false
+        isArchived: Bool = false,
+        isStopList: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -37,6 +39,7 @@ struct Ritmo {
         self.createdDate = createdDate
         self.archivedDate = archivedDate
         self.isArchived = isArchived
+        self.isStopList = isStopList
     }
 }
 

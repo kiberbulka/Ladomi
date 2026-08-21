@@ -23,8 +23,8 @@ final class RitmoHistoryViewController: UIViewController {
 
     private lazy var monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.dateFormat = "LLLL yyyy"
+        formatter.locale = .appPreferred
+        formatter.setLocalizedDateFormatFromTemplate("LLLL yyyy")
         return formatter
     }()
 
