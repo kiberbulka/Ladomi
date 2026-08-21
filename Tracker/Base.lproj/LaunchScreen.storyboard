@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launchCircleBlue" translatesAutoresizingMaskIntoConstraints="NO" id="rTm-Circle-Blue">
+                                <rect key="frame" x="239" y="-66" width="232" height="232"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="232" id="yn8-z1-1W8"/>
+                                    <constraint firstAttribute="width" constant="232" id="EtU-sx-n7n"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launchCirclePink" translatesAutoresizingMaskIntoConstraints="NO" id="rTm-Circle-Pink">
+                                <rect key="frame" x="-58" y="620" width="168" height="168"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="168" id="6Bb-a9-QNc"/>
+                                    <constraint firstAttribute="width" constant="168" id="Vqx-c2-q8y"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launchCircleYellow" translatesAutoresizingMaskIntoConstraints="NO" id="rTm-Circle-Yellow">
+                                <rect key="frame" x="247" y="425" width="104" height="104"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="104" id="c9r-Ud-wUX"/>
+                                    <constraint firstAttribute="width" constant="104" id="4wv-BT-c35"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launchRitmoLogo" translatesAutoresizingMaskIntoConstraints="NO" id="rTm-Logo">
+                                <rect key="frame" x="114.66666666666669" y="279" width="164" height="164"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="164" id="J81-74-q2V"/>
+                                    <constraint firstAttribute="width" constant="164" id="PP9-tK-2Pt"/>
+                                </constraints>
+                            </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Ritmo" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rTm-Title">
+                                <rect key="frame" x="124.33333333333331" y="467" width="144.66666666666669" height="50.666666666666686"/>
+                                <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="42"/>
+                                <color key="textColor" red="0.12156862745098039" green="0.12549019607843137" blue="0.14901960784313725" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="свой ритм дня" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rTm-Subtitle">
+                                <rect key="frame" x="139.33333333333331" y="527.66666666666663" width="114.66666666666669" height="20.333333333333371"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="17"/>
+                                <color key="textColor" red="0.62352941176470589" green="0.63921568627450975" blue="0.67843137254901964" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
+                        <color key="backgroundColor" red="0.97254901960784312" green="0.97254901960784312" blue="0.96470588235294119" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="rTm-Circle-Blue" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" constant="-66" id="Gg4-xv-wc5"/>
+                            <constraint firstItem="rTm-Circle-Blue" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" constant="78" id="FZ1-TF-pQF"/>
+                            <constraint firstItem="rTm-Circle-Pink" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="-58" id="NfM-yR-4am"/>
+                            <constraint firstItem="rTm-Circle-Pink" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" constant="-30" id="rWC-6B-bzG"/>
+                            <constraint firstItem="rTm-Circle-Yellow" firstAttribute="top" secondItem="rTm-Logo" secondAttribute="bottom" constant="-18" id="rzR-Jj-hmH"/>
+                            <constraint firstItem="rTm-Circle-Yellow" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" constant="-42" id="sY9-FJ-8bg"/>
+                            <constraint firstItem="rTm-Logo" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="QMb-eg-aSn"/>
+                            <constraint firstItem="rTm-Logo" firstAttribute="centerY" secondItem="6Tk-OE-BBY" secondAttribute="centerY" constant="-64" id="rmZ-0S-DpQ"/>
+                            <constraint firstItem="rTm-Title" firstAttribute="top" secondItem="rTm-Logo" secondAttribute="bottom" constant="24" id="w9A-mm-EnA"/>
+                            <constraint firstItem="rTm-Title" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="PhH-Ac-YkD"/>
+                            <constraint firstItem="rTm-Subtitle" firstAttribute="top" secondItem="rTm-Title" secondAttribute="bottom" constant="8" id="c9Y-UI-AB7"/>
+                            <constraint firstItem="rTm-Subtitle" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="H74-Ff-Fa1"/>
+                            <constraint firstItem="rTm-Subtitle" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="24" id="YbF-fz-kxr"/>
+                            <constraint firstItem="rTm-Subtitle" firstAttribute="trailing" relation="lessThanOrEqual" secondItem="6Tk-OE-BBY" secondAttribute="trailing" constant="-24" id="dqE-D7-07R"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="launchCircleBlue" width="232" height="232"/>
+        <image name="launchCirclePink" width="168" height="168"/>
+        <image name="launchCircleYellow" width="104" height="104"/>
+        <image name="launchRitmoLogo" width="164" height="164"/>
+    </resources>
+</document>

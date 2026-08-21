@@ -1,0 +1,19 @@
+# CocoaPods
+Pods/
+*.xcworkspace
+
+# Xcode
+xcuserdata/
+DerivedData/# CocoaPods
+Pods/
+Podfile.lock
+
+# Xcode
+*.xcworkspace
+xcuserdata/
+DerivedData/
+
+*.xcuserstate
+xcuserdata/
+*.xcuserstate
+xcuserdata/
