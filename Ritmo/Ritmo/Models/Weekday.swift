@@ -1,10 +1,3 @@
-//
-//  Weekdays.swift
-//  Ritmo
-//
-//  Created by User on 31.03.2025.
-//
-
 import Foundation
 
 enum Weekday: String, CaseIterable, Codable {

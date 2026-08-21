@@ -1,10 +1,3 @@
-//
-//  RitmoRecordStore.swift
-//  Ritmo
-//
-//  Created by Olya on 19.04.2025.
-//
-
 import CoreData
 
 struct RitmoRecordStoreUpdate {

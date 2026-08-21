@@ -1,10 +1,3 @@
-//
-//  AnalyticsService.swift
-//  Ritmo
-//
-//  Created by Olya on 21.05.2025.
-//
-
 import Foundation
 
 final class AnalyticsService {

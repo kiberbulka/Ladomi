@@ -1,10 +1,3 @@
-//
-//  ArchivedRitmosViewController.swift
-//  Ritmo
-//
-//  Created by Codex on 10.08.2026.
-//
-
 import UIKit
 
 final class ArchivedRitmosViewController: UIViewController {

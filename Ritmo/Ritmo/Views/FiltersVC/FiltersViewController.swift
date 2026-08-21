@@ -1,10 +1,3 @@
-//
-//  FiltersViewController.swift
-//  Ritmo
-//
-//  Created by Olya on 18.05.2025.
-//
-
 import UIKit
 
 class FiltersViewController: UIViewController {

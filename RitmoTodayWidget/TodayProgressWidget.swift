@@ -1,10 +1,3 @@
-//
-//  TodayProgressWidget.swift
-//  RitmoTodayWidget
-//
-//  Created by Codex on 09.08.2026.
-//
-
 import SwiftUI
 import WidgetKit
 

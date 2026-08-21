@@ -1,10 +1,3 @@
-//
-//  CoreDataManager.swift
-//  Ritmo
-//
-//  Created by Olya on 19.04.2025.
-//
-
 import Foundation
 import CoreData
 

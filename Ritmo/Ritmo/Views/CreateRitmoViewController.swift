@@ -1,10 +1,3 @@
-//
-//  TrackOrHabitView.swift
-//  Ritmo
-//
-//  Created by User on 30.03.2025.
-//
-
 import Foundation
 import UIKit
 

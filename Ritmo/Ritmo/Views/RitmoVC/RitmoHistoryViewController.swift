@@ -1,10 +1,3 @@
-//
-//  RitmoHistoryViewController.swift
-//  Ritmo
-//
-//  Created by Codex on 06.08.2026.
-//
-
 import UIKit
 
 final class RitmoHistoryViewController: UIViewController {

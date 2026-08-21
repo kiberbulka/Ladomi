@@ -1,10 +1,3 @@
-//
-//  RitmoWidgetSnapshotService.swift
-//  Ritmo
-//
-//  Created by Codex on 09.08.2026.
-//
-
 import Foundation
 
 #if canImport(WidgetKit)

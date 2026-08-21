@@ -1,10 +1,3 @@
-//
-//  DayCalendarViewController.swift
-//  Ritmo
-//
-//  Created by Codex on 12.08.2026.
-//
-
 import UIKit
 
 final class DayCalendarViewController: UIViewController {

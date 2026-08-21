@@ -1,10 +1,3 @@
-//
-//  ViewController.swift
-//  Ritmo
-//
-//  Created by User on 20.03.2025.
-//
-
 import UIKit
 
 class RitmosViewController: UIViewController {

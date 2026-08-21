@@ -1,10 +1,3 @@
-//
-//  StatisticsCell.swift
-//  Ritmo
-//
-//  Created by Olya on 17.05.2025.
-//
-
 import UIKit
 
 class StatisticsCell: UITableViewCell {

@@ -1,10 +1,3 @@
-//
-//  ColorCell.swift
-//  Ritmo
-//
-//  Created by User on 13.04.2025.
-//
-
 import Foundation
 import UIKit
 

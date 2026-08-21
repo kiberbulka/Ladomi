@@ -1,10 +1,3 @@
-//
-//  DataManager.swift
-//  Ritmo
-//
-//  Created by User on 07.04.2025.
-//
-
 import Foundation
 
 final class DataManager {

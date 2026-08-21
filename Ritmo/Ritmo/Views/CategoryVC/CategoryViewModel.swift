@@ -1,10 +1,3 @@
-//
-//  CategoryViewModel.swift
-//  Ritmo
-//
-//  Created by Olya on 05.05.2025.
-//
-
 import Foundation
 
 class CategoryViewModel{

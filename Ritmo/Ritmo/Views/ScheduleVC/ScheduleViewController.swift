@@ -1,10 +1,3 @@
-//
-//  ScheduleViewController.swift
-//  Ritmo
-//
-//  Created by User on 31.03.2025.
-//
-
 import Foundation
 import UIKit
 

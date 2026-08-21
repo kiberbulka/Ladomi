@@ -1,10 +1,3 @@
-//
-//  Extensions.swift
-//  Ritmo
-//
-//  Created by Olya on 20.05.2025.
-//
-
 import Foundation
 import UIKit
 

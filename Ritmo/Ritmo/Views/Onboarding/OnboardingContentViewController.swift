@@ -1,10 +1,3 @@
-//
-//  OnboardingContentViewController.swift
-//  Ritmo
-//
-//  Created by Olya on 03.05.2025.
-//
-
 import UIKit
 
 struct OnboardingPageConfiguration {

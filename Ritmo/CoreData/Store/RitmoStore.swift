@@ -1,10 +1,3 @@
-//
-//  RitmoStore.swift
-//  Ritmo
-//
-//  Created by Olya on 19.04.2025.
-//
-
 import UIKit
 import CoreData
 

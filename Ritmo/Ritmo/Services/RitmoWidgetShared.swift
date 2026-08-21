@@ -1,10 +1,3 @@
-//
-//  RitmoWidgetShared.swift
-//  Ritmo
-//
-//  Created by Codex on 09.08.2026.
-//
-
 import Foundation
 
 enum RitmoWidgetShared {

@@ -1,10 +1,3 @@
-//
-//  FilterType.swift
-//  Ritmo
-//
-//  Created by Olya on 20.05.2025.
-//
-
 import Foundation
 
 enum FilterType: String, CaseIterable {
