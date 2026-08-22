@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22758" systemVersion="23C71" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="DayItemCategoryCoreData" representedClassName="DayItemCategoryCoreData" syncable="YES" codeGenerationType="class">
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="dayItems" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DayItemCoreData" inverseName="dayItemCategory" inverseEntity="DayItemCoreData"/>
+    </entity>
+    <entity name="DayItemCoreData" representedClassName="DayItemCoreData" syncable="YES" codeGenerationType="class">
+        <attribute name="archivedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="color" optional="YES" attributeType="String"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="emoji" optional="YES" attributeType="String"/>
+        <attribute name="eventDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isArchived" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isHabit" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isStopList" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="reminderTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="schedule" optional="YES" attributeType="String" valueTransformerName="DaysValueTransformer"/>
+        <relationship name="dayItemCategory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="DayItemCategoryCoreData" inverseName="dayItems" inverseEntity="DayItemCategoryCoreData"/>
+    </entity>
+    <entity name="DayItemRecordCoreData" representedClassName="DayItemRecordCoreData" syncable="YES" codeGenerationType="class">
+        <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+    </entity>
+</model>

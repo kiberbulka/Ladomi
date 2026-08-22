@@ -151,12 +151,12 @@ Ladomi хранит данные локально:
 ## Структура проекта
 
 ```text
-Ritmo/
-  Ritmo/                 основной iOS target
-  RitmoTodayWidget/      widget extension
-  RitmoTests/            тесты
-  Ritmo.xcodeproj        Xcode project
-  Ritmo.xcworkspace      Xcode workspace
+Ladomi/
+  Ladomi/                 основной iOS target
+  LadomiTodayWidget/      widget extension
+  LadomiTests/            тесты
+  Ladomi.xcodeproj        Xcode project
+  Ladomi.xcworkspace      Xcode workspace
 ```
 
 ## Требования
@@ -171,15 +171,15 @@ Ritmo/
 Открыть проект в Xcode:
 
 ```bash
-open Ritmo.xcodeproj
+open Ladomi.xcodeproj
 ```
 
 Или собрать из терминала:
 
 ```bash
 xcodebuild \
-  -project Ritmo.xcodeproj \
-  -scheme Ritmo \
+  -project Ladomi.xcodeproj \
+  -scheme Ladomi \
   -sdk iphonesimulator \
   -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO \
