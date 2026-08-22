@@ -1,15 +1,15 @@
 /*
   Localizable.strings
-  Ritmo
+  Ladomi
 
   Created by Olya on 14.05.2025.
   
 */
 
-"emptyState.title" = "Что будем отслеживать?";
+"emptyState.title" = "Что добавим в этот день?";
 "emptySearchResult" = "Ничего не найдено";
 "delete" = "Удалить";
-"delete.confirmation" = "Уверены что хотите удалить ритм?";
+"delete.confirmation" = "Уверены, что хотите удалить этот пункт?";
 "cancel" = "Отменить";
 "onboardingBlue.title" = "Отслеживайте только то, что хотите";
 "onboardingRed.title" = "Даже если это не литры воды и йога";
@@ -17,10 +17,10 @@
 "onboarding.button.next" = "Далее";
 "onboarding.day.title" = "Соберите день из привычек и событий";
 "onboarding.day.subtitle" = "Добавляйте регулярные привычки, разовые планы, расписание и быстро отмечайте выполненное.";
-"onboarding.analytics.title" = "Понимайте свой ритм без таблиц";
+"onboarding.analytics.title" = "Понимайте свой день без таблиц";
 "onboarding.analytics.subtitle" = "Календарь, напоминания, настроение и аналитика помогают понять, что реально работает.";
 "onboarding.feature.create" = "Создавайте привычки и события";
-"onboarding.feature.filters" = "Ищите, фильтруйте и переносите ритмы";
+"onboarding.feature.filters" = "Ищите, фильтруйте и переносите планы";
 "onboarding.feature.complete" = "Отмечайте прогресс одним касанием";
 "onboarding.feature.analytics" = "Следите за сериями, процентом и средними";
 "onboarding.feature.calendar" = "Смотрите историю в календаре и настроение дня";
@@ -31,8 +31,9 @@
 "onboarding.mockup.event" = "Читать";
 "onboarding.mockup.eventDate" = "пт";
 "onboarding.mockup.advice" = "В лёгкие дни привычки выполняются стабильнее.";
-"ritmos.title" = "Ритмы";
-"dashboard.ritmos" = "Ритмы";
+"day.tab.title" = "День";
+"ritmos.title" = "Мой день";
+"dashboard.ritmos" = "Планы";
 "dashboard.stopList" = "Стоп-лист";
 "dashboard.ritmos.subtitle" = "%d %@ сегодня";
 "dashboard.stopList.subtitle" = "%d %@ в стоп-листе";
@@ -48,11 +49,11 @@
 "statistic.title" = "Статистика";
 "searchBar" = "Поиск";
 "habit" = "Привычка";
-"habit.item.one" = "привычка";
-"habit.item.few" = "привычки";
-"habit.item.many" = "привычек";
+"day.item.one" = "пункт";
+"day.item.few" = "пункта";
+"day.item.many" = "пунктов";
 "irregularEvent" = "Событие";
-"createRitmo.title" = "Создание ритма";
+"createRitmo.title" = "Новая запись";
 "newHabit" = "Новая привычка";
 "newIrregularEvent" = "Новое событие";
 "nameField.title" = "Название";
@@ -63,7 +64,7 @@
 "eventSchedulePicker.title" = "Выберите день этой недели";
 "reminderTable.title" = "Напоминание";
 "reminder.off" = "Выключено";
-"reminder.notification.title" = "Пора выполнить ритм";
+"reminder.notification.title" = "Пора свериться с планом";
 "softReminder.notification.title" = "Ещё можно успеть";
 "emojiCollectionView.title" = "Смайлик";
 "colorCollectionView.title" = "Цвет";
@@ -107,25 +108,25 @@
 "statisticsLabel" = "Статистика";
 "filterButton" = "Фильтры";
 "filter.all" = "Все";
-"allRitmos" = "Все ритмы";
-"ritmosForToday" = "Ритмы на сегодня";
+"allRitmos" = "Все";
+"ritmosForToday" = "На сегодня";
 "completedRitmos" = "Завершённые";
 "habitsFilter" = "Привычки";
 "eventsFilter" = "События";
-"uncompletedRitmos" = "Незавершённые";
+"uncompletedRitmos" = "Осталось";
 "statisticPlaceholder" = "Анализировать пока нечего";
 "bestPeriod" = "Лучший период";
 "currentStreak" = "Текущая серия";
 "idealDays" = "Идеальные дни";
-"numberOfCompletedRitmos" = "Ритмов завершено";
+"numberOfCompletedRitmos" = "Выполнено";
 "completedToday" = "Выполнено сегодня";
 "completedThisWeek" = "Выполнено за неделю";
 "completedThisMonth" = "Выполнено за месяц";
 "completionRate" = "Процент выполнения";
-"activeRitmos" = "Активных ритмов";
+"activeRitmos" = "Активных";
 "average" = "Среднее значение";
 "editHabit" = "Редактирование привычки";
-"ritmoHistory.title" = "История ритма";
+"ritmoHistory.title" = "История";
 "historyCompleted" = "Выполнено";
 "historyMissed" = "Пропущено";
 "historyCurrentStreak" = "Серия";
@@ -133,7 +134,7 @@
 "historyLegendMissed" = "Пропущено";
 "historyLegendPlanned" = "Запланировано";
 "archive.title" = "Архив";
-"archive.empty" = "Здесь будут завершённые ритмы";
+"archive.empty" = "Здесь будут завершённые привычки и события";
 "archiveRitmo" = "В архив";
 "archive.restore" = "Вернуть из архива";
 "archive.archivedOn" = "В архиве с";
@@ -154,13 +155,13 @@
 "calendar.mood.tired" = "Усталость";
 "calendar.mood.bad" = "Плохо";
 "analytics.title" = "Аналитика";
-"analytics.insights.title" = "Что влияет на ритм";
-"analytics.moodChip.rate" = "Ритм %d%%";
+"analytics.insights.title" = "Что влияет на день";
+"analytics.moodChip.rate" = "Выполнено %d%%";
 "analytics.metric.analyzedDays" = "дней в анализе";
 "analytics.metric.moodDays" = "дней с настроением";
 "analytics.metric.analyzedSuffix" = "в анализе";
 "analytics.metric.moodSuffix" = "с настроением";
-"analytics.overview.title" = "Общий ритм";
+"analytics.overview.title" = "Общий прогресс";
 "analytics.overview.detail" = "За %d дней выполнено %d из %d запланированных привычек и событий.";
 "analytics.stopList.title" = "Срывы";
 "analytics.stopList.detail" = "За период анализа отмечено %d %@. Такие дни вынесены в календаре красной точкой.";
@@ -183,12 +184,12 @@
 "analytics.advice.tired.detail" = "В дни усталости лучше оставлять 1–2 базовые привычки, а необязательное переносить заранее.";
 "analytics.advice.load.value" = "Меньше перегруза";
 "analytics.advice.load.detail" = "Когда день перегружен, выполнение проседает. Лучше распределить события по неделе.";
-"analytics.advice.stable.value" = "Ритм работает";
+"analytics.advice.stable.value" = "План работает";
 "analytics.advice.stable.detail" = "Сейчас план выглядит посильным. Продолжай отмечать настроение, чтобы рекомендации стали точнее.";
 
 "widget.today" = "Сегодня";
-"widget.noRitmos" = "Нет ритмов";
-"widget.openTracker" = "Открой Ritmo";
+"widget.noRitmos" = "Нет планов";
+"widget.openTracker" = "Открой Ladomi";
 "widget.dayClosed" = "День закрыт";
 "widget.remainingFormat" = "Осталось %d";
 "widget.dayPlan" = "План на день";
@@ -196,9 +197,9 @@
 "widget.openApp" = "Открой приложение";
 "widget.progressFormat" = "%d из %d";
 "widget.inlineProgressFormat" = "Сегодня %d/%d";
-"widget.inlineEmpty" = "Сегодня нет ритмов";
+"widget.inlineEmpty" = "Сегодня планов нет";
 "widget.displayName" = "Сегодня";
-"widget.description" = "Прогресс ритмов на сегодня.";
+"widget.description" = "Прогресс на сегодня.";
 "widget.preview.water" = "Вода";
 "widget.preview.reading" = "Чтение";
 "widget.preview.meditation" = "Медитация";

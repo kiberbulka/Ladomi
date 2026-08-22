@@ -1,15 +1,15 @@
 /* 
   Localizable.strings
-  Ritmo
+  Ladomi
 
   Created by Olya on 14.05.2025.
   
 */
 
-"emptyState.title" = "What are we going to track?";
+"emptyState.title" = "What would you like to add to this day?";
 "emptySearchResult" = "Nothing found";
 "delete" = "Delete";
-"delete.confirmation" = "Are you sure you want to delete the ritmo?";
+"delete.confirmation" = "Are you sure you want to delete this item?";
 "cancel" = "Cancel";
 "onboardingBlue.title" = "Track only what you want";
 "onboardingRed.title" = "Even if it's not liters of water and yoga";
@@ -17,10 +17,10 @@
 "onboarding.button.next" = "Next";
 "onboarding.day.title" = "Build your day from habits and events";
 "onboarding.day.subtitle" = "Add recurring habits, one-off plans, schedules, and mark progress in one tap.";
-"onboarding.analytics.title" = "See your rhythm without spreadsheets";
+"onboarding.analytics.title" = "Understand your day without spreadsheets";
 "onboarding.analytics.subtitle" = "Calendar, reminders, mood, and analytics help you understand what actually works.";
 "onboarding.feature.create" = "Create habits and events";
-"onboarding.feature.filters" = "Search, filter, and postpone ritmos";
+"onboarding.feature.filters" = "Search, filter, and postpone plans";
 "onboarding.feature.complete" = "Mark progress with one tap";
 "onboarding.feature.analytics" = "Track streaks, percentage, and averages";
 "onboarding.feature.calendar" = "Review calendar history and daily mood";
@@ -31,8 +31,9 @@
 "onboarding.mockup.event" = "Read";
 "onboarding.mockup.eventDate" = "Fri";
 "onboarding.mockup.advice" = "Habits stay steadier on lighter days.";
-"ritmos.title" = "Ritmos";
-"dashboard.ritmos" = "Ritmos";
+"day.tab.title" = "Day";
+"ritmos.title" = "My day";
+"dashboard.ritmos" = "Plans";
 "dashboard.stopList" = "Stop list";
 "dashboard.ritmos.subtitle" = "%d %@ today";
 "dashboard.stopList.subtitle" = "%d %@ in stop list";
@@ -48,22 +49,22 @@
 "statistic.title" = "Statistics";
 "searchBar" = "Search";
 "habit" = "Habit";
-"habit.item.one" = "habit";
-"habit.item.few" = "habits";
-"habit.item.many" = "habits";
+"day.item.one" = "item";
+"day.item.few" = "items";
+"day.item.many" = "items";
 "irregularEvent" = "Event";
-"createRitmo.title" = "Create Ritmo";
+"createRitmo.title" = "New item";
 "newHabit" = "New habit";
 "newIrregularEvent" = "New event";
 "nameField.title" = "Name";
-"textFieldRitmo" = "Enter ritmo name";
+"textFieldRitmo" = "Enter a name";
 "categoryTable.title" = "Category";
 "scheduleTable.title" = "Schedule";
 "eventScheduleTable.title" = "Schedule";
 "eventSchedulePicker.title" = "Choose a day this week";
 "reminderTable.title" = "Reminder";
 "reminder.off" = "Off";
-"reminder.notification.title" = "Time to complete your ritmo";
+"reminder.notification.title" = "A moment for your plan";
 "softReminder.notification.title" = "There is still time";
 "emojiCollectionView.title" = "Emoji";
 "colorCollectionView.title" = "Color";
@@ -107,25 +108,25 @@
 "statisticsLabel" = "Statistics";
 "filterButton" = "Filters";
 "filter.all" = "All";
-"allRitmos" = "All ritmos";
-"ritmosForToday" = "Ritmos for today";
+"allRitmos" = "All";
+"ritmosForToday" = "For today";
 "completedRitmos" = "Completed";
 "habitsFilter" = "Habits";
 "eventsFilter" = "Events";
-"uncompletedRitmos" = "Uncompleted";
+"uncompletedRitmos" = "Remaining";
 "statisticPlaceholder" = "Nothing to analyze yet";
 "bestPeriod" = "Best period";
 "currentStreak" = "Current streak";
 "idealDays" = "Ideal days";
-"numberOfCompletedRitmos" = "Ritmos completed";
+"numberOfCompletedRitmos" = "Completed";
 "completedToday" = "Completed today";
 "completedThisWeek" = "Completed this week";
 "completedThisMonth" = "Completed this month";
 "completionRate" = "Completion rate";
-"activeRitmos" = "Active ritmos";
+"activeRitmos" = "Active";
 "average" = "Average value";
 "editHabit" = "Edit habit";
-"ritmoHistory.title" = "Ritmo history";
+"ritmoHistory.title" = "History";
 "historyCompleted" = "Completed";
 "historyMissed" = "Missed";
 "historyCurrentStreak" = "Streak";
@@ -133,7 +134,7 @@
 "historyLegendMissed" = "Missed";
 "historyLegendPlanned" = "Planned";
 "archive.title" = "Archive";
-"archive.empty" = "Completed ritmos will live here";
+"archive.empty" = "Completed habits and events will live here";
 "archiveRitmo" = "Archive";
 "archive.restore" = "Restore from archive";
 "archive.archivedOn" = "Archived on";
@@ -154,13 +155,13 @@
 "calendar.mood.tired" = "Tired";
 "calendar.mood.bad" = "Bad";
 "analytics.title" = "Analytics";
-"analytics.insights.title" = "What affects your rhythm";
-"analytics.moodChip.rate" = "Rhythm %d%%";
+"analytics.insights.title" = "What shapes your day";
+"analytics.moodChip.rate" = "Completed %d%%";
 "analytics.metric.analyzedDays" = "days analyzed";
 "analytics.metric.moodDays" = "mood days";
 "analytics.metric.analyzedSuffix" = "analyzed";
 "analytics.metric.moodSuffix" = "with mood";
-"analytics.overview.title" = "Overall rhythm";
+"analytics.overview.title" = "Overall progress";
 "analytics.overview.detail" = "Over %d days, %d of %d planned habits and events were completed.";
 "analytics.stopList.title" = "Slips";
 "analytics.stopList.detail" = "%d %@ marked during the analysis period. These days are highlighted with a red dot in the calendar.";
@@ -183,12 +184,12 @@
 "analytics.advice.tired.detail" = "On tired days, keep 1–2 core habits and move optional items ahead of time.";
 "analytics.advice.load.value" = "Less overload";
 "analytics.advice.load.detail" = "When the day is overloaded, completion drops. Try spreading events across the week.";
-"analytics.advice.stable.value" = "The rhythm works";
+"analytics.advice.stable.value" = "Your plan works";
 "analytics.advice.stable.detail" = "Your plan looks manageable. Keep marking mood so recommendations get sharper.";
 
 "widget.today" = "Today";
-"widget.noRitmos" = "No ritmos";
-"widget.openTracker" = "Open Ritmo";
+"widget.noRitmos" = "No plans";
+"widget.openTracker" = "Open Ladomi";
 "widget.dayClosed" = "Day closed";
 "widget.remainingFormat" = "%d left";
 "widget.dayPlan" = "Day plan";
@@ -196,9 +197,9 @@
 "widget.openApp" = "Open the app";
 "widget.progressFormat" = "%d of %d";
 "widget.inlineProgressFormat" = "Today %d/%d";
-"widget.inlineEmpty" = "No ritmos today";
+"widget.inlineEmpty" = "No plans today";
 "widget.displayName" = "Today";
-"widget.description" = "Today's ritmo progress.";
+"widget.description" = "Today's progress.";
 "widget.preview.water" = "Water";
 "widget.preview.reading" = "Reading";
 "widget.preview.meditation" = "Meditation";

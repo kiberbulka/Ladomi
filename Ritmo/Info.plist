@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Ritmo</string>
+	<string>Ladomi</string>
 	<key>CFBundleName</key>
-	<string>Ritmo</string>
+	<string>Ladomi</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -877,8 +877,8 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Ritmo/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Ritmo;
-				INFOPLIST_KEY_CFBundleName = Ritmo;
+				INFOPLIST_KEY_CFBundleDisplayName = Ladomi;
+				INFOPLIST_KEY_CFBundleName = Ladomi;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -909,8 +909,8 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Ritmo/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Ritmo;
-				INFOPLIST_KEY_CFBundleName = Ritmo;
+				INFOPLIST_KEY_CFBundleDisplayName = Ladomi;
+				INFOPLIST_KEY_CFBundleName = Ladomi;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

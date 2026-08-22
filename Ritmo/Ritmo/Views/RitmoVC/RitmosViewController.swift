@@ -419,23 +419,23 @@ class RitmosViewController: UIViewController {
         switch dashboardMode {
         case .ritmos:
             let format = NSLocalizedString("dashboard.ritmos.subtitle", comment: "Main dashboard ritmos subtitle")
-            ritmoSubtitleLabel.text = String(format: format, count, habitWord(for: count))
+            ritmoSubtitleLabel.text = String(format: format, count, dayItemWord(for: count))
         case .stopList:
             let format = NSLocalizedString("dashboard.stopList.subtitle", comment: "Stop-list dashboard subtitle")
             ritmoSubtitleLabel.text = String(format: format, count, stopItemWord(for: count))
         }
     }
 
-    private func habitWord(for count: Int) -> String {
+    private func dayItemWord(for count: Int) -> String {
         let remainder10 = count % 10
         let remainder100 = count % 100
 
         if remainder10 == 1 && remainder100 != 11 {
-            return NSLocalizedString("habit.item.one", comment: "One habit item")
+            return NSLocalizedString("day.item.one", comment: "One day item")
         } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
-            return NSLocalizedString("habit.item.few", comment: "Few habit items")
+            return NSLocalizedString("day.item.few", comment: "Few day items")
         } else {
-            return NSLocalizedString("habit.item.many", comment: "Many habit items")
+            return NSLocalizedString("day.item.many", comment: "Many day items")
         }
     }
 

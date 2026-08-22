@@ -12,7 +12,7 @@ final class TabBarController: UITabBarController {
         let calendarViewController = DayCalendarViewController()
         let statisticViewController = StatisticViewController()
         
-        let tabBarItemTextRitmos = NSLocalizedString("ritmos.title", comment: "Заголовок таб бара")
+        let tabBarItemTextRitmos = NSLocalizedString("day.tab.title", comment: "Заголовок вкладки дня")
         let tabBarItemTextArchive = NSLocalizedString("archive.title", comment: "Заголовок таб бара архива")
         let tabBarItemTextCalendar = NSLocalizedString("calendar.title", comment: "Заголовок таб бара календаря")
         let tabBarItemTextStatistics = NSLocalizedString("analytics.title", comment: "Заголовок таб бара аналитики")
