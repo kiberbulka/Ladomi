@@ -50,11 +50,6 @@ Ladomi — iOS-приложение для спокойного отслежив
 - карточки привычек и событий перестраиваются в сетку и сохраняют общий левый край с заголовками категорий;
 - формы создания, пустые состояния, календарь и аналитика учитывают доступную область экрана.
 
-<p align="center">
-  <img src="design-mockups/ipad/ipad-dashboard-portrait.png" width="38%" alt="Ladomi на iPad в портретной ориентации">
-  <img src="design-mockups/ipad/ipad-dashboard-landscape.png" width="56%" alt="Ladomi на iPad в альбомной ориентации">
-</p>
-
 ### Создание и редактирование
 
 Экран создания поддерживает три типа:
@@ -170,7 +165,6 @@ Ladomi/
   Ladomi/                 основной iOS target
   LadomiTodayWidget/      widget extension
   LadomiTests/            тесты
-  design-mockups/ipad/    макеты интерфейса iPad
   Ladomi.xcodeproj        Xcode project
   Ladomi.xcworkspace      Xcode workspace
 ```
