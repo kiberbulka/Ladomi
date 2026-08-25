@@ -69,6 +69,9 @@
 "emojiCollectionView.title" = "Смайлик";
 "colorCollectionView.title" = "Цвет";
 "createButton" = "Создать";
+"sidebar.newTracker" = "Новый трекер";
+"sidebar.newPlan" = "Новый план";
+"sidebar.newStopItem" = "Новый стоп-пункт";
 "saveButton" = "Сохранить";
 "limit.title" = "Ограничение 38 символов";
 "categoryCreateVC.title" = "Привычки и события можно \n объединить по смыслу";

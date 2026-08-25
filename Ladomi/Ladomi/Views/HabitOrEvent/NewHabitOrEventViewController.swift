@@ -509,13 +509,13 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
             // Buttons
             createButton.heightAnchor.constraint(equalToConstant: 60),
-            createButton.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width / 2 - 30),
             createButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             createButton.topAnchor.constraint(equalTo: previewCardView.bottomAnchor, constant: 16),
 
             cancelButton.heightAnchor.constraint(equalToConstant: 60),
-            cancelButton.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width / 2 - 30),
             cancelButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            cancelButton.trailingAnchor.constraint(equalTo: createButton.leadingAnchor, constant: -8),
+            cancelButton.widthAnchor.constraint(equalTo: createButton.widthAnchor),
             cancelButton.topAnchor.constraint(equalTo: previewCardView.bottomAnchor, constant: 16),
 
             // Bottom padding
