@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CA3000012E61000000000001 /* LadomiWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3000112E61000000000011 /* LadomiWatchApp.swift */; };
+		CA3000022E61000000000002 /* WatchPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3000122E61000000000012 /* WatchPlan.swift */; };
+		CA3000032E61000000000003 /* WatchPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3000132E61000000000013 /* WatchPlanStore.swift */; };
+		CA3000042E61000000000004 /* PlanListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3000142E61000000000014 /* PlanListView.swift */; };
+		CA3000052E61000000000005 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CA3000152E61000000000015 /* Localizable.xcstrings */; };
+		CA3000062E61000000000006 /* LadomiWatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA3000162E61000000000016 /* LadomiWatchSyncService.swift */; };
+		CA3000072E61000000000007 /* LadomiWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = CA3000172E61000000000017 /* LadomiWatch.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		CA3000082E61000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA3000182E61000000000018 /* Assets.xcassets */; };
 		CE0000032E54000000000003 /* ReminderNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000022E54000000000002 /* ReminderNotificationService.swift */; };
 		CE0000052E54000000000005 /* DayItemHistoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000042E54000000000004 /* DayItemHistoryViewController.swift */; };
 		CE1000052E58000000000005 /* LadomiWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1000072E58000000000007 /* LadomiWidgetShared.swift */; };
@@ -60,6 +68,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CA3000212E61000000000021 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE96143D2D8C6F9800AC062C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA3000252E61000000000025;
+			remoteInfo = LadomiWatch;
+		};
 		CE1000172E58000000000017 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CE96143D2D8C6F9800AC062C /* Project object */;
@@ -70,6 +85,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		CA3000222E61000000000022 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CA3000072E61000000000007 /* LadomiWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE10000D2E5800000000000D /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -84,6 +110,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CA3000112E61000000000011 /* LadomiWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LadomiWatchApp.swift; sourceTree = "<group>"; };
+		CA3000122E61000000000012 /* WatchPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlan.swift; sourceTree = "<group>"; };
+		CA3000132E61000000000013 /* WatchPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPlanStore.swift; sourceTree = "<group>"; };
+		CA3000142E61000000000014 /* PlanListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanListView.swift; sourceTree = "<group>"; };
+		CA3000152E61000000000015 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CA3000162E61000000000016 /* LadomiWatchSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LadomiWatchSyncService.swift; sourceTree = "<group>"; };
+		CA3000172E61000000000017 /* LadomiWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LadomiWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA3000182E61000000000018 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CE0000022E54000000000002 /* ReminderNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderNotificationService.swift; sourceTree = "<group>"; };
 		CE0000042E54000000000004 /* DayItemHistoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayItemHistoryViewController.swift; sourceTree = "<group>"; };
 		CE1000012E58000000000001 /* TodayProgressWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayProgressWidget.swift; sourceTree = "<group>"; };
@@ -143,6 +177,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CA3000232E61000000000023 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE10000E2E5800000000000E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -168,8 +209,22 @@
 				CE0000022E54000000000002 /* ReminderNotificationService.swift */,
 				CE1000072E58000000000007 /* LadomiWidgetShared.swift */,
 				CE1000082E58000000000008 /* LadomiWidgetSnapshotService.swift */,
+				CA3000162E61000000000016 /* LadomiWatchSyncService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		CA3000242E61000000000024 /* LadomiWatch */ = {
+			isa = PBXGroup;
+			children = (
+				CA3000112E61000000000011 /* LadomiWatchApp.swift */,
+				CA3000122E61000000000012 /* WatchPlan.swift */,
+				CA3000132E61000000000013 /* WatchPlanStore.swift */,
+				CA3000142E61000000000014 /* PlanListView.swift */,
+				CA3000152E61000000000015 /* Localizable.xcstrings */,
+				CA3000182E61000000000018 /* Assets.xcassets */,
+			);
+			path = LadomiWatch;
 			sourceTree = "<group>";
 		};
 		CE1000152E58000000000015 /* LadomiTodayWidget */ = {
@@ -243,6 +298,8 @@
 			children = (
 				CE9614472D8C6F9800AC062C /* Ladomi */,
 				CE1000152E58000000000015 /* LadomiTodayWidget */,
+				CA3000242E61000000000024 /* LadomiWatch */,
+				CE8915632DDAECA900861170 /* LadomiTests */,
 				CE9614462D8C6F9800AC062C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -252,6 +309,8 @@
 			children = (
 				CE9614452D8C6F9800AC062C /* Ladomi.app */,
 				CE10000B2E5800000000000B /* LadomiTodayWidget.appex */,
+				CA3000172E61000000000017 /* LadomiWatch.app */,
+				CE8915622DDAECA900861170 /* LadomiTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -374,6 +433,46 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CA3000252E61000000000025 /* LadomiWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA30002C2E6100000000002C /* Build configuration list for PBXNativeTarget "LadomiWatch" */;
+			buildPhases = (
+				CA3000272E61000000000027 /* Sources */,
+				CA3000232E61000000000023 /* Frameworks */,
+				CA3000262E61000000000026 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LadomiWatch;
+			productName = LadomiWatch;
+			productReference = CA3000172E61000000000017 /* LadomiWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CE8915612DDAECA900861170 /* LadomiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE89156A2DDAECA900861170 /* Build configuration list for PBXNativeTarget "LadomiTests" */;
+			buildPhases = (
+				CE89155E2DDAECA900861170 /* Sources */,
+				CE89155F2DDAECA900861170 /* Frameworks */,
+				CE8915602DDAECA900861170 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CE8915672DDAECA900861170 /* PBXTargetDependency */,
+			);
+			name = LadomiTests;
+			packageProductDependencies = (
+				CE89156C2DDAECD300861170 /* InlineSnapshotTesting */,
+				CE89156E2DDAECD300861170 /* SnapshotTesting */,
+				CE8915702DDAECD300861170 /* SnapshotTestingCustomDump */,
+			);
+			productName = LadomiTests;
+			productReference = CE8915622DDAECA900861170 /* LadomiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		CE9614442D8C6F9800AC062C /* Ladomi */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CE9614592D8C6F9A00AC062C /* Build configuration list for PBXNativeTarget "Ladomi" */;
@@ -382,11 +481,13 @@
 				CE9614422D8C6F9800AC062C /* Frameworks */,
 				CE9614432D8C6F9800AC062C /* Resources */,
 				CE10000D2E5800000000000D /* Embed App Extensions */,
+				CA3000222E61000000000022 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				CE1000162E58000000000016 /* PBXTargetDependency */,
+				CA3000282E61000000000028 /* PBXTargetDependency */,
 			);
 			name = Ladomi;
 			productName = Ladomi;
@@ -420,6 +521,13 @@
 				LastSwiftUpdateCheck = 1540;
 				LastUpgradeCheck = 1540;
 				TargetAttributes = {
+					CA3000252E61000000000025 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					CE8915612DDAECA900861170 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = CE9614442D8C6F9800AC062C;
+					};
 					CE1000112E58000000000011 = {
 						CreatedOnToolsVersion = 15.4;
 						SystemCapabilities = {
@@ -455,12 +563,22 @@
 			projectRoot = "";
 			targets = (
 				CE9614442D8C6F9800AC062C /* Ladomi */,
+				CA3000252E61000000000025 /* LadomiWatch */,
 				CE1000112E58000000000011 /* LadomiTodayWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CA3000262E61000000000026 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA3000052E61000000000005 /* Localizable.xcstrings in Resources */,
+				CA3000082E61000000000008 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE10000F2E5800000000000F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -482,6 +600,17 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CA3000272E61000000000027 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA3000012E61000000000001 /* LadomiWatchApp.swift in Sources */,
+				CA3000022E61000000000002 /* WatchPlan.swift in Sources */,
+				CA3000032E61000000000003 /* WatchPlanStore.swift in Sources */,
+				CA3000042E61000000000004 /* PlanListView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE1000102E58000000000010 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -521,6 +650,7 @@
 				CE1000192E59000000000019 /* ArchivedDayItemsViewController.swift in Sources */,
 				CE2000022E5C000000000002 /* DayCalendarViewController.swift in Sources */,
 				CE1000062E58000000000006 /* LadomiWidgetSnapshotService.swift in Sources */,
+				CA3000062E61000000000006 /* LadomiWatchSyncService.swift in Sources */,
 				CE8915772DDCA60200861170 /* Extensions.swift in Sources */,
 				CE4A24FA2DAB9F6B003BA0BA /* ColorCell.swift in Sources */,
 				CEBFFC1E2DC9027B000185E5 /* CategoryViewModel.swift in Sources */,
@@ -544,6 +674,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CA3000282E61000000000028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA3000252E61000000000025 /* LadomiWatch */;
+			targetProxy = CA3000212E61000000000021 /* PBXContainerItemProxy */;
+		};
 		CE1000162E58000000000016 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CE1000112E58000000000011 /* LadomiTodayWidget */;
@@ -574,6 +709,64 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		CA3000292E61000000000029 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5JT77YB5Z4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Ladomi;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.olyasmirnova.Ladomi;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.olyasmirnova.Ladomi.watchkitapp;
+				PRODUCT_NAME = LadomiWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		CA30002A2E6100000000002A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5JT77YB5Z4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Ladomi;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.olyasmirnova.Ladomi;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.olyasmirnova.Ladomi.watchkitapp;
+				PRODUCT_NAME = LadomiWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		CE1000122E58000000000012 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -816,6 +1009,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CA30002C2E6100000000002C /* Build configuration list for PBXNativeTarget "LadomiWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA3000292E61000000000029 /* Debug */,
+				CA30002A2E6100000000002A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CE1000142E58000000000014 /* Build configuration list for PBXNativeTarget "LadomiTodayWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

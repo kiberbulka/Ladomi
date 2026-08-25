@@ -18,6 +18,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         window?.makeKeyAndVisible()
     }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        LadomiWatchSyncService.shared.publishTodayPlans()
+    }
     
     private func isFirstLaunch() -> Bool {
         return !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -53,4 +57,3 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 }
-
