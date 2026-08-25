@@ -514,8 +514,6 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
             cancelButton.heightAnchor.constraint(equalToConstant: 60),
             cancelButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            cancelButton.trailingAnchor.constraint(equalTo: createButton.leadingAnchor, constant: -8),
-            cancelButton.widthAnchor.constraint(equalTo: createButton.widthAnchor),
             cancelButton.topAnchor.constraint(equalTo: previewCardView.bottomAnchor, constant: 16),
 
             // Bottom padding
@@ -523,6 +521,19 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             dayItemNameTF.widthAnchor.constraint(equalTo: contentView.widthAnchor, constant: -40)
 
         ])
+
+        if traitCollection.userInterfaceIdiom == .pad {
+            NSLayoutConstraint.activate([
+                cancelButton.trailingAnchor.constraint(equalTo: createButton.leadingAnchor, constant: -8),
+                cancelButton.widthAnchor.constraint(equalTo: createButton.widthAnchor)
+            ])
+        } else {
+            let phoneButtonWidth = UIScreen.main.bounds.width / 2 - 30
+            NSLayoutConstraint.activate([
+                createButton.widthAnchor.constraint(equalToConstant: phoneButtonWidth),
+                cancelButton.widthAnchor.constraint(equalToConstant: phoneButtonWidth)
+            ])
+        }
         updatePreviewCard()
     }
 

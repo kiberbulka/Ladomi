@@ -81,37 +81,60 @@ final class CategoryViewController: UIViewController {
         }
         tableView.delegate = self
         tableView.dataSource = self
-        showPlaceholder()
+        if traitCollection.userInterfaceIdiom == .pad {
+            showPlaceholder()
+        }
     }
     
     // MARK: - Private Methods
     
     private func showPlaceholder(){
         let shouldShowPlaceholder = viewModel.isEmpty()
-        tableView.backgroundView = shouldShowPlaceholder ? placeholderContainerView : nil
+        if traitCollection.userInterfaceIdiom == .pad {
+            tableView.backgroundView = shouldShowPlaceholder ? placeholderContainerView : nil
+        } else {
+            placeholderImage.isHidden = !shouldShowPlaceholder
+            placeholderLabel.isHidden = !shouldShowPlaceholder
+        }
     }
     
     private func setupUI(){
         
-        [titleLabel, doneButton, tableView].forEach{
+        let isPad = traitCollection.userInterfaceIdiom == .pad
+        let rootViews: [UIView] = isPad
+            ? [titleLabel, doneButton, tableView]
+            : [titleLabel, doneButton, tableView, placeholderImage, placeholderLabel]
+
+        rootViews.forEach{
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
 
-        [placeholderImage, placeholderLabel].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            placeholderContainerView.addSubview($0)
-        }
+        if isPad {
+            [placeholderImage, placeholderLabel].forEach {
+                $0.translatesAutoresizingMaskIntoConstraints = false
+                placeholderContainerView.addSubview($0)
+            }
 
-        NSLayoutConstraint.activate([
-            placeholderImage.centerXAnchor.constraint(equalTo: placeholderContainerView.centerXAnchor),
-            placeholderImage.centerYAnchor.constraint(equalTo: placeholderContainerView.centerYAnchor, constant: -24),
-            placeholderImage.heightAnchor.constraint(equalToConstant: 80),
-            placeholderImage.widthAnchor.constraint(equalToConstant: 80),
-            placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
-            placeholderLabel.leadingAnchor.constraint(equalTo: placeholderContainerView.leadingAnchor, constant: 20),
-            placeholderLabel.trailingAnchor.constraint(equalTo: placeholderContainerView.trailingAnchor, constant: -20)
-        ])
+            NSLayoutConstraint.activate([
+                placeholderImage.centerXAnchor.constraint(equalTo: placeholderContainerView.centerXAnchor),
+                placeholderImage.centerYAnchor.constraint(equalTo: placeholderContainerView.centerYAnchor, constant: -24),
+                placeholderImage.heightAnchor.constraint(equalToConstant: 80),
+                placeholderImage.widthAnchor.constraint(equalToConstant: 80),
+                placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
+                placeholderLabel.leadingAnchor.constraint(equalTo: placeholderContainerView.leadingAnchor, constant: 20),
+                placeholderLabel.trailingAnchor.constraint(equalTo: placeholderContainerView.trailingAnchor, constant: -20)
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                placeholderImage.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 358),
+                placeholderImage.heightAnchor.constraint(equalToConstant: 80),
+                placeholderImage.widthAnchor.constraint(equalToConstant: 80),
+                placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
+                placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            ])
+        }
         
         NSLayoutConstraint.activate([
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),

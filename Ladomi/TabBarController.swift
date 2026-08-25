@@ -165,13 +165,16 @@ final class TabBarController: UITabBarController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        configureTabBarTypography()
+        configureViewControllers()
+
+        guard traitCollection.userInterfaceIdiom == .pad else { return }
+
         view.backgroundColor = UIColor(red: 0.98, green: 0.98, blue: 0.97, alpha: 1)
         if #available(iOS 18.0, *) {
             mode = .tabBar
         }
-        configureTabBarTypography()
         configureTabBarAppearance()
-        configureViewControllers()
         configureSidebar()
         configureBottomNavigation()
         delegate = self
@@ -179,11 +182,13 @@ final class TabBarController: UITabBarController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        guard traitCollection.userInterfaceIdiom == .pad else { return }
         updateAdaptiveNavigation(animated: false)
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
+        guard traitCollection.userInterfaceIdiom == .pad else { return }
         coordinator.animate(alongsideTransition: { [weak self] _ in
             self?.updateAdaptiveNavigation(animated: false, proposedSize: size)
             self?.view.layoutIfNeeded()
@@ -192,8 +197,10 @@ final class TabBarController: UITabBarController {
 
     private func configureViewControllers() {
         let dayViewController = DayViewController()
-        dayViewController.onStopListModeChange = { [weak self] isStopListMode in
-            self?.updateSidebarCreateButtonTitle(isStopListMode: isStopListMode)
+        if traitCollection.userInterfaceIdiom == .pad {
+            dayViewController.onStopListModeChange = { [weak self] isStopListMode in
+                self?.updateSidebarCreateButtonTitle(isStopListMode: isStopListMode)
+            }
         }
         let dayItemViewController = UINavigationController(rootViewController: dayViewController)
         let archiveViewController = ArchivedDayItemsViewController()
@@ -232,8 +239,12 @@ final class TabBarController: UITabBarController {
             calendarViewController,
             statisticViewController
         ]
-        viewControllers = contentViewControllers.map {
-            AdaptiveContentContainerViewController(contentViewController: $0)
+        if traitCollection.userInterfaceIdiom == .pad {
+            viewControllers = contentViewControllers.map {
+                AdaptiveContentContainerViewController(contentViewController: $0)
+            }
+        } else {
+            viewControllers = contentViewControllers
         }
     }
 

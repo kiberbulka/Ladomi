@@ -155,8 +155,6 @@ Ladomi хранит данные локально:
 - WidgetKit
 - UserNotifications
 - App Groups
-- XCTest
-- SnapshotTesting
 
 ## Структура проекта
 
@@ -164,7 +162,6 @@ Ladomi хранит данные локально:
 Ladomi/
   Ladomi/                 основной iOS target
   LadomiTodayWidget/      widget extension
-  LadomiTests/            тесты
   Ladomi.xcodeproj        Xcode project
   Ladomi.xcworkspace      Xcode workspace
 ```

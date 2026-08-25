@@ -45,20 +45,35 @@ final class StatisticViewController: UIViewController {
     private lazy var placeholderContainerView: UIView = {
         let view = UIView()
 
-        let stackView = UIStackView(arrangedSubviews: [placeholderImage, placeholderLabel])
-        stackView.axis = .vertical
-        stackView.alignment = .center
-        stackView.spacing = 8
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stackView)
+        if traitCollection.userInterfaceIdiom == .pad {
+            let stackView = UIStackView(arrangedSubviews: [placeholderImage, placeholderLabel])
+            stackView.axis = .vertical
+            stackView.alignment = .center
+            stackView.spacing = 8
+            stackView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(stackView)
 
-        NSLayoutConstraint.activate([
-            placeholderImage.widthAnchor.constraint(equalToConstant: 80),
-            placeholderImage.heightAnchor.constraint(equalToConstant: 80),
-            placeholderLabel.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -40),
-            stackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            stackView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
+            NSLayoutConstraint.activate([
+                placeholderImage.widthAnchor.constraint(equalToConstant: 80),
+                placeholderImage.heightAnchor.constraint(equalToConstant: 80),
+                placeholderLabel.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -40),
+                stackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                stackView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            ])
+        } else {
+            [placeholderImage, placeholderLabel].forEach {
+                $0.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview($0)
+            }
+
+            NSLayoutConstraint.activate([
+                view.heightAnchor.constraint(greaterThanOrEqualToConstant: 420),
+                placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                placeholderImage.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -28),
+                placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
+                placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            ])
+        }
 
         return view
     }()
@@ -192,12 +207,18 @@ final class StatisticViewController: UIViewController {
         contentStackView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStackView)
 
-        placeholderContainerView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(placeholderContainerView)
+        let isPad = traitCollection.userInterfaceIdiom == .pad
+        if isPad {
+            placeholderContainerView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(placeholderContainerView)
+        }
 
         setupOverviewCard()
 
-        [titleLabel, overviewCardView, insightsSectionLabel, insightsStackView].forEach {
+        let contentViews: [UIView] = isPad
+            ? [titleLabel, overviewCardView, insightsSectionLabel, insightsStackView]
+            : [titleLabel, placeholderContainerView, overviewCardView, insightsSectionLabel, insightsStackView]
+        contentViews.forEach {
             contentStackView.addArrangedSubview($0)
         }
         contentStackView.setCustomSpacing(24, after: titleLabel)
@@ -208,17 +229,21 @@ final class StatisticViewController: UIViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
-            placeholderContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            placeholderContainerView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
-            placeholderContainerView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
-            placeholderContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-
             contentStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 44),
             contentStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -16),
             contentStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
             contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32)
         ])
+
+        if isPad {
+            NSLayoutConstraint.activate([
+                placeholderContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                placeholderContainerView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+                placeholderContainerView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+                placeholderContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            ])
+        }
     }
 
     private func setupOverviewCard() {

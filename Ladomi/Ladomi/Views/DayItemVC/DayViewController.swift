@@ -231,7 +231,7 @@ class DayViewController: UIViewController {
         searchTextField.textColor = .ypBlack
         searchTextField.tintColor = .ypBlack
         searchTextField.font = .ladomiRegular(17)
-        searchTextField.layer.cornerRadius = 28
+        searchTextField.layer.cornerRadius = traitCollection.userInterfaceIdiom == .pad ? 28 : 18
         searchTextField.layer.masksToBounds = true
         searchTextField.borderStyle = .none
         let attributes: [NSAttributedString.Key: Any] = [
@@ -388,7 +388,9 @@ class DayViewController: UIViewController {
             controlsStackView.topAnchor.constraint(equalTo: dayItemSubtitleLabel.bottomAnchor, constant: 16),
             controlsLeadingConstraint,
             controlsTrailingConstraint,
-            modeSegmentControl.heightAnchor.constraint(equalTo: searchTextField.heightAnchor),
+            modeSegmentControl.heightAnchor.constraint(
+                equalToConstant: traitCollection.userInterfaceIdiom == .pad ? 56 : 44
+            ),
 
             filterChipScrollView.leadingAnchor.constraint(equalTo: controlsStackView.leadingAnchor),
             filterChipScrollView.trailingAnchor.constraint(equalTo: controlsStackView.trailingAnchor),
