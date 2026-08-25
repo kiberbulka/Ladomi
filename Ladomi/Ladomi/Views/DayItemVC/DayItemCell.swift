@@ -133,7 +133,7 @@ final class DayItemCell: UICollectionViewCell {
         
         NSLayoutConstraint.activate([
             dayItemCardView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            dayItemCardView.heightAnchor.constraint(equalToConstant: 156),
+            dayItemCardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             dayItemCardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             dayItemCardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
 

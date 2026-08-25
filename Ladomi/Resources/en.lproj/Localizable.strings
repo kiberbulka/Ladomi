@@ -69,6 +69,9 @@
 "emojiCollectionView.title" = "Emoji";
 "colorCollectionView.title" = "Color";
 "createButton" = "Create";
+"sidebar.newTracker" = "New tracker";
+"sidebar.newPlan" = "New plan";
+"sidebar.newStopItem" = "New stop item";
 "saveButton" = "Save";
 "limit.title" = "Limit of 38 characters";
 "categoryCreateVC.title" = "Habits and events can be \n grouped by meaning";

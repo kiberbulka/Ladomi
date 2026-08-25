@@ -25,7 +25,18 @@ class DayViewController: UIViewController {
     private var filterChipHeightConstraint: NSLayoutConstraint!
     private var filterChipTopConstraint: NSLayoutConstraint!
     private var collectionViewTopConstraint: NSLayoutConstraint!
+    private var addButtonLeadingConstraint: NSLayoutConstraint!
+    private var dateButtonTrailingConstraint: NSLayoutConstraint!
+    private var titleLeadingConstraint: NSLayoutConstraint!
+    private var titleTrailingConstraint: NSLayoutConstraint!
+    private var titleBelowAddConstraint: NSLayoutConstraint!
+    private var titleWideTopConstraint: NSLayoutConstraint!
+    private var controlsLeadingConstraint: NSLayoutConstraint!
+    private var controlsTrailingConstraint: NSLayoutConstraint!
+    private var modeSegmentWidthConstraint: NSLayoutConstraint!
+    private var appliedAdaptiveLayoutMode = -1
     private var dashboardMode: DashboardMode = .dayItems
+    var onStopListModeChange: ((Bool) -> Void)?
 
     private lazy var dateChipFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -204,6 +215,15 @@ class DayViewController: UIViewController {
         searchStackview.spacing = 14
         return searchStackview
     }()
+
+    private lazy var controlsStackView: UIStackView = {
+        let stackView = UIStackView(arrangedSubviews: [modeSegmentControl, searchStackView])
+        stackView.axis = .vertical
+        stackView.alignment = .fill
+        stackView.distribution = .fill
+        stackView.spacing = 14
+        return stackView
+    }()
     
     private lazy var searchTextField: UISearchTextField = {
         let searchTextField = UISearchTextField()
@@ -211,7 +231,7 @@ class DayViewController: UIViewController {
         searchTextField.textColor = .ypBlack
         searchTextField.tintColor = .ypBlack
         searchTextField.font = .ladomiRegular(17)
-        searchTextField.layer.cornerRadius = 18
+        searchTextField.layer.cornerRadius = 28
         searchTextField.layer.masksToBounds = true
         searchTextField.borderStyle = .none
         let attributes: [NSAttributedString.Key: Any] = [
@@ -279,7 +299,19 @@ class DayViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        updateAdaptiveLayout()
         updateCollectionViewBottomInset()
+    }
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        coordinator.animate(alongsideTransition: { [weak self] _ in
+            guard let self else { return }
+            self.appliedAdaptiveLayoutMode = -1
+            self.updateAdaptiveLayout(proposedSize: size)
+            self.collectionView.collectionViewLayout.invalidateLayout()
+            self.view.layoutIfNeeded()
+        })
     }
     
     // MARK: -  Setup UI
@@ -291,8 +323,7 @@ class DayViewController: UIViewController {
             dateButton,
             dayItemLabel,
             dayItemSubtitleLabel,
-            modeSegmentControl,
-            searchStackView,
+            controlsStackView,
             filterChipScrollView,
             collectionView,
             placeholderStackView
@@ -301,37 +332,66 @@ class DayViewController: UIViewController {
             view.addSubview($0)
         }
         
-        NSLayoutConstraint.activate([
+        addButtonLeadingConstraint = addDayItemButton.leadingAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+            constant: 20
+        )
+        dateButtonTrailingConstraint = dateButton.trailingAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+            constant: -20
+        )
+        titleLeadingConstraint = dayItemLabel.leadingAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+            constant: 20
+        )
+        titleTrailingConstraint = dayItemLabel.trailingAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+            constant: -20
+        )
+        titleBelowAddConstraint = dayItemLabel.topAnchor.constraint(
+            equalTo: addDayItemButton.bottomAnchor,
+            constant: 12
+        )
+        titleWideTopConstraint = dayItemLabel.topAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.topAnchor,
+            constant: 12
+        )
+        controlsLeadingConstraint = controlsStackView.leadingAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+            constant: 20
+        )
+        controlsTrailingConstraint = controlsStackView.trailingAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+            constant: -20
+        )
+        modeSegmentWidthConstraint = modeSegmentControl.widthAnchor.constraint(equalToConstant: 260)
 
+        NSLayoutConstraint.activate([
             addDayItemButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            addDayItemButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            addButtonLeadingConstraint,
             addDayItemButton.heightAnchor.constraint(equalToConstant: 48),
             addDayItemButton.widthAnchor.constraint(equalToConstant: 48),
 
             dateButton.centerYAnchor.constraint(equalTo: addDayItemButton.centerYAnchor),
-            dateButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            dateButtonTrailingConstraint,
             dateButton.heightAnchor.constraint(equalToConstant: 44),
             dateButton.widthAnchor.constraint(equalToConstant: 112),
-            
-            dayItemLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            dayItemLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            dayItemLabel.topAnchor.constraint(equalTo: addDayItemButton.bottomAnchor, constant: 12),
+
+            titleLeadingConstraint,
+            titleTrailingConstraint,
+            titleBelowAddConstraint,
 
             dayItemSubtitleLabel.topAnchor.constraint(equalTo: dayItemLabel.bottomAnchor, constant: 6),
             dayItemSubtitleLabel.leadingAnchor.constraint(equalTo: dayItemLabel.leadingAnchor),
             dayItemSubtitleLabel.trailingAnchor.constraint(equalTo: dayItemLabel.trailingAnchor),
 
-            modeSegmentControl.topAnchor.constraint(equalTo: dayItemSubtitleLabel.bottomAnchor, constant: 16),
-            modeSegmentControl.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            modeSegmentControl.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            modeSegmentControl.heightAnchor.constraint(equalToConstant: 44),
+            controlsStackView.topAnchor.constraint(equalTo: dayItemSubtitleLabel.bottomAnchor, constant: 16),
+            controlsLeadingConstraint,
+            controlsTrailingConstraint,
+            modeSegmentControl.heightAnchor.constraint(equalTo: searchTextField.heightAnchor),
 
-            searchStackView.topAnchor.constraint(equalTo: modeSegmentControl.bottomAnchor, constant: 14),
-            searchStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            searchStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-
-            filterChipScrollView.leadingAnchor.constraint(equalTo: searchStackView.leadingAnchor),
-            filterChipScrollView.trailingAnchor.constraint(equalTo: searchStackView.trailingAnchor),
+            filterChipScrollView.leadingAnchor.constraint(equalTo: controlsStackView.leadingAnchor),
+            filterChipScrollView.trailingAnchor.constraint(equalTo: controlsStackView.trailingAnchor),
 
             placeholderImage.heightAnchor.constraint(equalToConstant: 80),
             placeholderImage.widthAnchor.constraint(equalToConstant: 80),
@@ -339,12 +399,12 @@ class DayViewController: UIViewController {
             placeholderStackView.centerXAnchor.constraint(equalTo: collectionView.centerXAnchor),
             placeholderStackView.centerYAnchor.constraint(equalTo: collectionView.centerYAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor)
+            collectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            collectionView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor)
             
         ])
 
-        filterChipTopConstraint = filterChipScrollView.topAnchor.constraint(equalTo: searchStackView.bottomAnchor, constant: 14)
+        filterChipTopConstraint = filterChipScrollView.topAnchor.constraint(equalTo: controlsStackView.bottomAnchor, constant: 14)
         filterChipHeightConstraint = filterChipScrollView.heightAnchor.constraint(equalToConstant: 38)
         collectionViewTopConstraint = collectionView.topAnchor.constraint(equalTo: filterChipScrollView.bottomAnchor, constant: 6)
         NSLayoutConstraint.activate([
@@ -352,7 +412,91 @@ class DayViewController: UIViewController {
             filterChipHeightConstraint,
             collectionViewTopConstraint
         ])
+        updateAdaptiveLayout()
         updateDashboardModeUI()
+    }
+
+    private struct CardLayoutMetrics {
+        let itemSize: CGSize
+        let spacing: CGFloat
+        let sectionInsets: UIEdgeInsets
+    }
+
+    private func updateAdaptiveLayout(proposedSize: CGSize? = nil) {
+        let size = proposedSize ?? view.bounds.size
+        let isPad = traitCollection.userInterfaceIdiom == .pad
+        let isWidePad = isPad && size.width > size.height
+        let layoutMode = isPad ? (isWidePad ? 2 : 1) : 0
+
+        guard layoutMode != appliedAdaptiveLayoutMode else { return }
+        appliedAdaptiveLayoutMode = layoutMode
+
+        let horizontalMargin: CGFloat
+        switch layoutMode {
+        case 1:
+            horizontalMargin = 48
+        case 2:
+            horizontalMargin = 32
+        default:
+            horizontalMargin = 20
+        }
+
+        addButtonLeadingConstraint.constant = horizontalMargin
+        dateButtonTrailingConstraint.constant = -horizontalMargin
+        titleLeadingConstraint.constant = horizontalMargin
+        titleTrailingConstraint.constant = -horizontalMargin
+        controlsLeadingConstraint.constant = horizontalMargin
+        controlsTrailingConstraint.constant = -horizontalMargin
+
+        addDayItemButton.isHidden = isWidePad
+        titleBelowAddConstraint.isActive = !isWidePad
+        titleWideTopConstraint.isActive = isWidePad
+        modeSegmentWidthConstraint.isActive = isWidePad
+
+        controlsStackView.axis = isWidePad ? .horizontal : .vertical
+        controlsStackView.alignment = isWidePad ? .center : .fill
+        controlsStackView.spacing = isWidePad ? 16 : 14
+
+        dayItemLabel.font = .ladomiBold(isPad ? 44 : 32)
+        dayItemSubtitleLabel.font = .ladomiMedium(isPad ? 18 : 17)
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    private func cardLayoutMetrics(in collectionView: UICollectionView) -> CardLayoutMetrics {
+        let collectionWidth = collectionView.bounds.width
+        let isPad = traitCollection.userInterfaceIdiom == .pad
+
+        guard isPad else {
+            let spacing: CGFloat = 14
+            let insets = UIEdgeInsets(top: 6, left: 20, bottom: 12, right: 20)
+            let width = (collectionWidth - insets.left - insets.right - spacing) / 2
+            return CardLayoutMetrics(
+                itemSize: CGSize(width: floor(width), height: 156),
+                spacing: spacing,
+                sectionInsets: insets
+            )
+        }
+
+        let isWidePad = view.bounds.width > view.bounds.height
+        let columnCount: CGFloat = isWidePad ? 4 : 3
+        let spacing: CGFloat = 16
+        let preferredWidth: CGFloat = isWidePad ? 188 : 212
+        let minimumOuterInset: CGFloat = isWidePad ? 32 : 48
+        let availableWidth = collectionWidth - (minimumOuterInset * 2) - (spacing * (columnCount - 1))
+        let itemWidth = min(preferredWidth, floor(availableWidth / columnCount))
+        let gridWidth = (itemWidth * columnCount) + (spacing * (columnCount - 1))
+        let centeredInset = max(minimumOuterInset, floor((collectionWidth - gridWidth) / 2))
+        let leadingInset = isWidePad ? centeredInset : minimumOuterInset
+        let trailingInset = isWidePad
+            ? centeredInset
+            : max(minimumOuterInset, floor(collectionWidth - leadingInset - gridWidth))
+        let itemHeight = max(156, floor(itemWidth * 0.86))
+
+        return CardLayoutMetrics(
+            itemSize: CGSize(width: itemWidth, height: itemHeight),
+            spacing: spacing,
+            sectionInsets: UIEdgeInsets(top: 8, left: leadingInset, bottom: 18, right: trailingInset)
+        )
     }
     
     private func setupNavigationItem(){
@@ -560,6 +704,10 @@ class DayViewController: UIViewController {
         collectionView.reloadData()
     }
     
+    func presentCreateDayItem() {
+        createDayItemOrHabit()
+    }
+
     @objc private func createDayItemOrHabit(){
         let createDayItemVC = NewHabitOrEventViewController()
         createDayItemVC.delegate = self
@@ -717,6 +865,7 @@ class DayViewController: UIViewController {
 
     private func updateDashboardModeUI() {
         let isStopListMode = dashboardMode == .stopList
+        onStopListModeChange?(isStopListMode)
         selectedFilter = .all
         dayItemLabel.text = isStopListMode
             ? NSLocalizedString("stopList.title", comment: "Stop-list screen title")
@@ -1115,8 +1264,12 @@ extension DayViewController: UICollectionViewDataSource {
                 withReuseIdentifier: "header",
                 for: indexPath) as! SupplementaryView
             let category = visibleCategories[indexPath.section]
-            
-            header.configure(text: category.title, count: category.dayItems.count)
+
+            header.configure(
+                text: category.title,
+                count: category.dayItems.count,
+                horizontalInset: cardLayoutMetrics(in: collectionView).sectionInsets.left
+            )
             return header
         }
         return UICollectionReusableView()
@@ -1131,7 +1284,10 @@ extension DayViewController: UICollectionViewDataSource {
             return .zero
         }
 
-        return CGSize(width: view.frame.width, height: 36)
+        return CGSize(
+            width: collectionView.bounds.width,
+            height: traitCollection.userInterfaceIdiom == .pad ? 44 : 36
+        )
     }
 }
 
@@ -1239,26 +1395,22 @@ extension DayViewController: UICollectionViewDelegateFlowLayout{
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let itemCount: CGFloat = 2
-        let space: CGFloat = 14
-        let width: CGFloat = (collectionView.bounds.width - space - 40) / itemCount
-        let height: CGFloat = 156
-        return CGSize(width: width, height: height)
+        cardLayoutMetrics(in: collectionView).itemSize
     }
     
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        return 14
+        cardLayoutMetrics(in: collectionView).spacing
         
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        return 14
+        cardLayoutMetrics(in: collectionView).spacing
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        return UIEdgeInsets(top: 6, left: 20, bottom: 12, right: 20)
+        cardLayoutMetrics(in: collectionView).sectionInsets
     }
 }
 
