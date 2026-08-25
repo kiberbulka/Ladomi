@@ -158,6 +158,10 @@
 "calendar.mood.tired" = "Усталость";
 "calendar.mood.bad" = "Плохо";
 "analytics.title" = "Аналитика";
+"analytics.attention.title" = "Требуют внимания";
+"analytics.attention.detail.one" = "Пропущен %d запланированный день подряд. Можно вернуться сегодня.";
+"analytics.attention.detail.few" = "Пропущено %d запланированных дня подряд. Можно вернуться сегодня.";
+"analytics.attention.detail.many" = "Пропущено %d запланированных дней подряд. Можно вернуться сегодня.";
 "analytics.insights.title" = "Что влияет на день";
 "analytics.moodChip.rate" = "Выполнено %d%%";
 "analytics.metric.analyzedDays" = "дней в анализе";

@@ -20,10 +20,18 @@ struct AnalyticsInsight {
     let detail: String
 }
 
+struct HabitAttentionItem {
+    let habitID: UUID
+    let name: String
+    let emoji: String
+    let missedScheduledDays: Int
+}
+
 struct AnalyticsData {
     let analyzedDays: Int
     let moodDays: Int
     let averageCompletionRate: Int
+    let habitAttentionItems: [HabitAttentionItem]
     let insights: [AnalyticsInsight]
 }
 
@@ -82,6 +90,7 @@ final class StatisticsService {
     private let dayItemRecordStore: DayItemRecordStore
     private let calendar = Calendar.current
     private let moodStorageKey = "dayItem.dayMoodByDate"
+    private let postponedDayItemsKey = "postponedDayItemsByDate"
 
     private lazy var moodDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -168,6 +177,7 @@ final class StatisticsService {
         let allRecords = dayItemRecordStore.fetch()
         let records = allRecords.filter { dayItemIDs.contains($0.dayItemID) }
         let today = calendar.startOfDay(for: Date())
+        let postponements = UserDefaults.standard.dictionary(forKey: postponedDayItemsKey) as? [String: String] ?? [:]
         let periodStart = statisticsPeriodStart(dayItems: dayItems, records: records, today: today)
         let periodDates = dates(from: periodStart, through: today)
         let recordsByDate = Dictionary(grouping: records) { calendar.startOfDay(for: $0.date) }
@@ -210,12 +220,100 @@ final class StatisticsService {
             analyzedDays: plannedMetrics.count,
             moodDays: moodMetrics.count,
             averageCompletionRate: averageCompletionRate,
+            habitAttentionItems: makeHabitAttentionItems(
+                habits: allDayItems.filter { $0.isHabit && !$0.isArchived && !$0.isStopList },
+                records: allRecords,
+                postponements: postponements,
+                today: today
+            ),
             insights: makeInsights(
                 metrics: plannedMetrics,
                 moodMetrics: moodMetrics,
                 stopListSlipCount: stopListSlipCount
             )
         )
+    }
+
+    private func makeHabitAttentionItems(
+        habits: [DayItem],
+        records: [DayItemRecord],
+        postponements: [String: String],
+        today: Date
+    ) -> [HabitAttentionItem] {
+        let completedDatesByHabit = Dictionary(grouping: records) { $0.dayItemID }.mapValues { records in
+            Set(records.map { calendar.startOfDay(for: $0.date) })
+        }
+
+        let items = habits.compactMap { habit -> HabitAttentionItem? in
+            let completedDates = completedDatesByHabit[habit.id, default: []]
+
+            if isHabitExpected(habit, on: today, postponements: postponements),
+               completedDates.contains(today) {
+                return nil
+            }
+
+            let createdDate = calendar.startOfDay(for: habit.createdDate)
+            guard var date = calendar.date(byAdding: .day, value: -1, to: today) else {
+                return nil
+            }
+
+            var missedScheduledDays = 0
+            while date >= createdDate {
+                if isHabitExpected(habit, on: date, postponements: postponements) {
+                    if completedDates.contains(date) {
+                        break
+                    }
+                    missedScheduledDays += 1
+                }
+
+                guard let previousDate = calendar.date(byAdding: .day, value: -1, to: date) else {
+                    break
+                }
+                date = previousDate
+            }
+
+            guard missedScheduledDays >= 3 else {
+                return nil
+            }
+
+            return HabitAttentionItem(
+                habitID: habit.id,
+                name: habit.name,
+                emoji: habit.emoji,
+                missedScheduledDays: missedScheduledDays
+            )
+        }
+
+        return Array(
+            items
+                .sorted {
+                    if $0.missedScheduledDays == $1.missedScheduledDays {
+                        return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                    }
+                    return $0.missedScheduledDays > $1.missedScheduledDays
+                }
+                .prefix(3)
+        )
+    }
+
+    private func isHabitExpected(
+        _ habit: DayItem,
+        on date: Date,
+        postponements: [String: String]
+    ) -> Bool {
+        let sourceKey = postponementKey(for: habit.id, date: date)
+        let isPostponedFromDate = postponements[sourceKey] != nil
+        let targetDateKey = moodKey(for: date)
+        let habitPrefix = "\(habit.id.uuidString)_"
+        let isPostponedToDate = postponements.contains { key, value in
+            key.hasPrefix(habitPrefix) && value == targetDateKey
+        }
+
+        return (isHabit(habit, activeOn: date) && !isPostponedFromDate) || isPostponedToDate
+    }
+
+    private func postponementKey(for habitID: UUID, date: Date) -> String {
+        "\(habitID.uuidString)_\(moodKey(for: date))"
     }
 
     private func recordsCount(in interval: DateInterval?, records: [DayItemRecord]) -> Int {

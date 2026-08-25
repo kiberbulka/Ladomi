@@ -9,6 +9,9 @@ protocol DayItemCellDelegate: AnyObject {
 final class DayItemCell: UICollectionViewCell {
     
     static let dayItemCellIdentifier = "DayItemCell"
+
+    private let maximumNameFontSize: CGFloat = 15
+    private let minimumNameFontSize: CGFloat = 10
     
     private var isCompletedToday: Bool = false
     private var dayItemId: UUID?
@@ -51,9 +54,11 @@ final class DayItemCell: UICollectionViewCell {
     
     private lazy var dayItemCardNameLabel: UILabel = {
         let label = UILabel()
-        label.font = .ladomiBold(19)
+        label.font = .ladomiBold(maximumNameFontSize)
         label.textColor = .white
         label.numberOfLines = 2
+        label.lineBreakMode = .byWordWrapping
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
         return label
     }()
     
@@ -84,7 +89,7 @@ final class DayItemCell: UICollectionViewCell {
         let stack = UIStackView(arrangedSubviews: [emojiAndPinContainer, dayItemCardNameLabel])
         stack.axis = .vertical
         stack.alignment = .fill
-        stack.spacing = 8
+        stack.spacing = 4
         return stack
     }()
     
@@ -147,10 +152,10 @@ final class DayItemCell: UICollectionViewCell {
             bottomCircleView.bottomAnchor.constraint(equalTo: dayItemCardView.bottomAnchor, constant: 22),
             bottomCircleView.trailingAnchor.constraint(equalTo: dayItemCardView.trailingAnchor, constant: 16),
             
-            dayItemCardContentStack.topAnchor.constraint(equalTo: dayItemCardView.topAnchor, constant: 16),
+            dayItemCardContentStack.topAnchor.constraint(equalTo: dayItemCardView.topAnchor, constant: 12),
             dayItemCardContentStack.leadingAnchor.constraint(equalTo: dayItemCardView.leadingAnchor, constant: 16),
             dayItemCardContentStack.trailingAnchor.constraint(equalTo: dayItemCardView.trailingAnchor, constant: -16),
-            dayItemCardContentStack.bottomAnchor.constraint(lessThanOrEqualTo: dayItemCardView.bottomAnchor, constant: -58),
+            dayItemCardContentStack.bottomAnchor.constraint(lessThanOrEqualTo: dayItemCardView.bottomAnchor, constant: -60),
             
             pinImage.topAnchor.constraint(equalTo: dayItemCardView.topAnchor, constant: 19),
             pinImage.trailingAnchor.constraint(equalTo: dayItemCardView.trailingAnchor, constant: -19),
@@ -175,6 +180,11 @@ final class DayItemCell: UICollectionViewCell {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        fitNameIntoTwoLines()
+    }
     
     func configureCell(dayItem: DayItem, isCompletedToday: Bool, displayDays: Int, indexPath: IndexPath, isPinned: Bool) {
         self.dayItemId = dayItem.id
@@ -182,6 +192,7 @@ final class DayItemCell: UICollectionViewCell {
         self.indexPath = indexPath
         dayItemCardView.backgroundColor = dayItem.color
         dayItemCardNameLabel.text = dayItem.name
+        dayItemCardNameLabel.font = .ladomiBold(maximumNameFontSize)
         dayItemCardEmojiLabel.text = dayItem.emoji
         daysCounterLabel.isHidden = !(dayItem.isHabit || dayItem.isStopList)
         if dayItem.isStopList {
@@ -199,6 +210,43 @@ final class DayItemCell: UICollectionViewCell {
         
         pinImage.isHidden = !isPinned
         pinImage.tintColor = .white
+    }
+
+    private func fitNameIntoTwoLines() {
+        guard let text = dayItemCardNameLabel.text,
+              !text.isEmpty,
+              dayItemCardNameLabel.bounds.width > 0 else {
+            return
+        }
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        let availableWidth = dayItemCardNameLabel.bounds.width
+        var fontSize = maximumNameFontSize
+
+        while fontSize > minimumNameFontSize {
+            let font = UIFont.ladomiBold(fontSize)
+            let textBounds = (text as NSString).boundingRect(
+                with: CGSize(width: availableWidth, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: [
+                    .font: font,
+                    .paragraphStyle: paragraphStyle
+                ],
+                context: nil
+            )
+
+            if ceil(textBounds.height) <= ceil(font.lineHeight * 2) {
+                break
+            }
+
+            fontSize -= 0.5
+        }
+
+        let fittedSize = max(fontSize, minimumNameFontSize)
+        if dayItemCardNameLabel.font.pointSize != fittedSize {
+            dayItemCardNameLabel.font = .ladomiBold(fittedSize)
+        }
     }
     
     private func pluralizeDays(_ count: Int) -> String {

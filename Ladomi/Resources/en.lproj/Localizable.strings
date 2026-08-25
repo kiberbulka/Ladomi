@@ -158,6 +158,10 @@
 "calendar.mood.tired" = "Tired";
 "calendar.mood.bad" = "Bad";
 "analytics.title" = "Analytics";
+"analytics.attention.title" = "Needs attention";
+"analytics.attention.detail.one" = "%d scheduled day missed in a row. You can return today.";
+"analytics.attention.detail.few" = "%d scheduled days missed in a row. You can return today.";
+"analytics.attention.detail.many" = "%d scheduled days missed in a row. You can return today.";
 "analytics.insights.title" = "What shapes your day";
 "analytics.moodChip.rate" = "Completed %d%%";
 "analytics.metric.analyzedDays" = "days analyzed";

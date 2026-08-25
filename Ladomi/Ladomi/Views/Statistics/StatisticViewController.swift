@@ -161,13 +161,23 @@ final class StatisticViewController: UIViewController {
     private lazy var adviceCardView = makeAdviceCard()
     private lazy var adviceValueLabel = makeAdviceValueLabel()
     private lazy var adviceDetailLabel = makeAdviceDetailLabel()
-    private lazy var insightsSectionLabel = makeSectionLabel()
+    private lazy var attentionSectionLabel = makeSectionLabel(
+        text: NSLocalizedString("analytics.attention.title", comment: "Habits that need attention section title")
+    )
+    private lazy var attentionStackView = makeVerticalCardsStackView()
+    private lazy var insightsSectionLabel = makeSectionLabel(
+        text: NSLocalizedString("analytics.insights.title", comment: "Insights section title")
+    )
     private lazy var insightsStackView = makeInsightsStackView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         dayItemRecordStore.delegate = self
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         reloadStatistics()
     }
 
@@ -175,16 +185,20 @@ final class StatisticViewController: UIViewController {
         analyticsData = statisticsService.fetchAnalytics()
         statisticsItems = makeStatisticsItems()
 
-        let hasData = !statisticsItems.isEmpty
-        placeholderContainerView.isHidden = hasData
-        overviewCardView.isHidden = !hasData
-        insightsSectionLabel.isHidden = !hasData
-        insightsStackView.isHidden = !hasData
+        let hasStatistics = !statisticsItems.isEmpty
+        let hasAttentionItems = !(analyticsData?.habitAttentionItems.isEmpty ?? true)
+        placeholderContainerView.isHidden = hasStatistics || hasAttentionItems
+        overviewCardView.isHidden = !hasStatistics
+        attentionSectionLabel.isHidden = !hasAttentionItems
+        attentionStackView.isHidden = !hasAttentionItems
+        insightsSectionLabel.isHidden = !hasStatistics
+        insightsStackView.isHidden = !hasStatistics
 
-        if hasData {
+        if hasStatistics {
             configureOverview()
             configureInsightCards()
         }
+        configureAttentionCards()
         scrollView.setContentOffset(.zero, animated: false)
     }
 
@@ -216,8 +230,23 @@ final class StatisticViewController: UIViewController {
         setupOverviewCard()
 
         let contentViews: [UIView] = isPad
-            ? [titleLabel, overviewCardView, insightsSectionLabel, insightsStackView]
-            : [titleLabel, placeholderContainerView, overviewCardView, insightsSectionLabel, insightsStackView]
+            ? [
+                titleLabel,
+                overviewCardView,
+                attentionSectionLabel,
+                attentionStackView,
+                insightsSectionLabel,
+                insightsStackView
+            ]
+            : [
+                titleLabel,
+                placeholderContainerView,
+                overviewCardView,
+                attentionSectionLabel,
+                attentionStackView,
+                insightsSectionLabel,
+                insightsStackView
+            ]
         contentViews.forEach {
             contentStackView.addArrangedSubview($0)
         }
@@ -373,6 +402,17 @@ final class StatisticViewController: UIViewController {
         }
     }
 
+    private func configureAttentionCards() {
+        attentionStackView.arrangedSubviews.forEach {
+            attentionStackView.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        analyticsData?.habitAttentionItems.forEach { item in
+            attentionStackView.addArrangedSubview(makeAttentionCard(item: item))
+        }
+    }
+
     private func progressValue(from text: String) -> CGFloat {
         let digits = text.filter { $0.isNumber }
         guard let value = Int(digits) else {
@@ -507,19 +547,101 @@ final class StatisticViewController: UIViewController {
         return label
     }
 
-    private func makeSectionLabel() -> UILabel {
+    private func makeSectionLabel(text: String) -> UILabel {
         let label = UILabel()
-        label.text = NSLocalizedString("analytics.insights.title", comment: "Insights section title")
+        label.text = text
         label.font = .ladomiBold(24)
         label.textColor = .ypBlack
         return label
     }
 
-    private func makeInsightsStackView() -> UIStackView {
+    private func makeVerticalCardsStackView() -> UIStackView {
         let stackView = UIStackView()
         stackView.axis = .vertical
         stackView.spacing = 12
         return stackView
+    }
+
+    private func makeInsightsStackView() -> UIStackView {
+        makeVerticalCardsStackView()
+    }
+
+    private func makeAttentionCard(item: HabitAttentionItem) -> UIView {
+        let cardView = UIView()
+        cardView.backgroundColor = accentColor.withAlphaComponent(0.10)
+        cardView.layer.cornerRadius = 20
+
+        let emojiLabel = UILabel()
+        emojiLabel.text = item.emoji
+        emojiLabel.font = .ladomiMedium(24)
+        emojiLabel.textAlignment = .center
+        emojiLabel.backgroundColor = .ypWhite
+        emojiLabel.layer.cornerRadius = 22
+        emojiLabel.layer.masksToBounds = true
+
+        let nameLabel = UILabel()
+        nameLabel.text = item.name
+        nameLabel.font = .ladomiBold(17)
+        nameLabel.textColor = .ypBlack
+        nameLabel.numberOfLines = 1
+        nameLabel.adjustsFontSizeToFitWidth = true
+        nameLabel.minimumScaleFactor = 0.78
+
+        let detailLabel = UILabel()
+        detailLabel.text = attentionDetail(for: item.missedScheduledDays)
+        detailLabel.font = .ladomiMedium(13)
+        detailLabel.textColor = .ypLightGray
+        detailLabel.numberOfLines = 2
+
+        let warningImageView = UIImageView(image: UIImage(systemName: "exclamationmark.circle.fill"))
+        warningImageView.tintColor = accentColor
+        warningImageView.contentMode = .scaleAspectFit
+
+        [emojiLabel, nameLabel, detailLabel, warningImageView].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            cardView.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            cardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 92),
+
+            emojiLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            emojiLabel.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),
+            emojiLabel.widthAnchor.constraint(equalToConstant: 44),
+            emojiLabel.heightAnchor.constraint(equalToConstant: 44),
+
+            warningImageView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 18),
+            warningImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            warningImageView.widthAnchor.constraint(equalToConstant: 20),
+            warningImageView.heightAnchor.constraint(equalToConstant: 20),
+
+            nameLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 16),
+            nameLabel.leadingAnchor.constraint(equalTo: emojiLabel.trailingAnchor, constant: 14),
+            nameLabel.trailingAnchor.constraint(equalTo: warningImageView.leadingAnchor, constant: -10),
+
+            detailLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
+            detailLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
+            detailLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            detailLabel.bottomAnchor.constraint(lessThanOrEqualTo: cardView.bottomAnchor, constant: -16)
+        ])
+
+        return cardView
+    }
+
+    private func attentionDetail(for count: Int) -> String {
+        let remainder10 = count % 10
+        let remainder100 = count % 100
+        let key: String
+
+        if remainder10 == 1 && remainder100 != 11 {
+            key = "analytics.attention.detail.one"
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            key = "analytics.attention.detail.few"
+        } else {
+            key = "analytics.attention.detail.many"
+        }
+
+        return String(format: NSLocalizedString(key, comment: "Missed habit reminder"), count)
     }
 
     private func makeInsightCard(item: StatisticsItem) -> UIView {
