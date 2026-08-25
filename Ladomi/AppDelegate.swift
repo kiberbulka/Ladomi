@@ -11,6 +11,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
            didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
        ) -> Bool {
            UNUserNotificationCenter.current().delegate = self
+           LadomiWatchSyncService.shared.activate()
            window = UIWindow(frame: UIScreen.main.bounds)
            window?.rootViewController = UINavigationController(rootViewController: DayViewController())
            window?.makeKeyAndVisible()

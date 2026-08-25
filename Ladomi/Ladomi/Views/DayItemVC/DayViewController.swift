@@ -262,6 +262,12 @@ class DayViewController: UIViewController {
         showPlaceholder()
         view.backgroundColor = UIColor(red: 0.98, green: 0.98, blue: 0.97, alpha: 1)
         NotificationCenter.default.addObserver(self, selector: #selector(handleDidCreateDayItem), name: Notification.Name("DidCreateDayItem"), object: nil)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleWatchRecordsDidChange),
+            name: LadomiWatchSyncService.recordsDidChangeNotification,
+            object: nil
+        )
         dayItemCategoryStore.delegate = self
         AnalyticsService.shared.report(event: "open", screen: "Main")
     }
@@ -551,6 +557,10 @@ class DayViewController: UIViewController {
         collectionView.reloadData()
         showPlaceholder()
     }
+
+    @objc private func handleWatchRecordsDidChange() {
+        reloadData()
+    }
     
     @objc private func datePickerValueChanged() {
         currentDate = datePicker.date
@@ -762,6 +772,7 @@ class DayViewController: UIViewController {
         datePickerValueChanged()
         reloadVisibleCategories()
         showPlaceholder()
+        LadomiWatchSyncService.shared.publishTodayPlans()
     }
 
     private func refreshReminders() {
@@ -860,6 +871,7 @@ class DayViewController: UIViewController {
         reloadVisibleCategories()
         collectionView.reloadData()
         showPlaceholder()
+        LadomiWatchSyncService.shared.publishTodayPlans()
     }
 
     private func archiveDayItem(_ dayItem: DayItem) {
@@ -1158,6 +1170,7 @@ extension DayViewController: DayItemCellDelegate {
         do {
             try dayItemRecordStore.add(dayItemRecord: dayItemRecord)
             completedDayItems.append(dayItemRecord)
+            LadomiWatchSyncService.shared.publishTodayPlans()
             if let dayItem = dayItemStore.dayItem(with: id) {
                 if dayItem.isStopList {
                     collectionView.reloadItems(at: [indexPath])
@@ -1196,6 +1209,7 @@ extension DayViewController: DayItemCellDelegate {
         }
 
         if let dayItem = dayItemStore.dayItem(with: id) {
+            LadomiWatchSyncService.shared.publishTodayPlans()
             if dayItem.isStopList {
                 collectionView.reloadItems(at: [indexPath])
             } else if dayItem.isHabit {

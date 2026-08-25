@@ -17,6 +17,7 @@ Ladomi — iOS-приложение для спокойного отслежив
 - Строит аналитику по выполнению, нагрузке, настроению, лучшему дню недели и срывам.
 - Хранит завершённые привычки и события в архиве.
 - Поддерживает виджет с прогрессом на сегодня.
+- Показывает сегодняшние планы на Apple Watch и позволяет отмечать их выполнение с синхронизацией обратно на iPhone.
 - Поддерживает русскую и английскую локализацию.
 
 ## Основные экраны
@@ -118,6 +119,10 @@ Ladomi — iOS-приложение для спокойного отслежив
 
 Текст виджета локализован на русский и английский.
 
+### Apple Watch
+
+Приложение для watchOS показывает привычки и события на сегодня в виде цветных карточек. Касание карточки меняет статус выполнения, обновляет общий прогресс и передаёт отметку в основное приложение через WatchConnectivity. Последний полученный список сохраняется на часах и доступен без соединения.
+
 ## Данные и хранение
 
 Ladomi хранит данные локально:
@@ -143,6 +148,7 @@ Ladomi хранит данные локально:
 - SwiftUI для WidgetKit
 - Core Data
 - WidgetKit
+- WatchConnectivity
 - UserNotifications
 - App Groups
 - XCTest
@@ -154,6 +160,7 @@ Ladomi хранит данные локально:
 Ladomi/
   Ladomi/                 основной iOS target
   LadomiTodayWidget/      widget extension
+  LadomiWatch/            приложение для watchOS
   LadomiTests/            тесты
   Ladomi.xcodeproj        Xcode project
   Ladomi.xcworkspace      Xcode workspace
@@ -164,6 +171,7 @@ Ladomi/
 - Xcode 17 или новее
 - iOS 13.4+ для основного приложения
 - iOS 16.0+ для widget extension
+- watchOS 10.0+ для приложения Apple Watch
 - Swift 5
 
 ## Сборка
@@ -185,6 +193,8 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   build
 ```
+
+Для запуска watchOS-схемы выбрать `LadomiWatch` и сопряжённую пару iPhone + Apple Watch Simulator.
 
 ## Текущая ветка
 
