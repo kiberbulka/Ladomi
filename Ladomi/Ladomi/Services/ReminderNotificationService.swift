@@ -11,6 +11,7 @@ final class ReminderNotificationService {
     private let softReminderMinute = 0
     private let habitReminderPrefix = "habit"
     private let eventReminderPrefix = "event"
+    private let postponedDayItemsKey = "postponedDayItemsByDate"
     private let habitPlanningWindowDays = 60
     private let maxHabitRemindersPerDayItem = 8
     private let skippedReminderQueue = DispatchQueue(label: "dayItem.reminders.skipped")
@@ -156,10 +157,11 @@ final class ReminderNotificationService {
         let calendar = Calendar.current
         let now = Date()
         let startDate = calendar.startOfDay(for: now)
+        let postponements = loadPostponements()
 
         return (0..<habitPlanningWindowDays).compactMap { dayOffset -> Date? in
             guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startDate),
-                  isHabit(dayItem, activeOn: date),
+                  isHabit(dayItem, activeOn: date, postponements: postponements),
                   !isDayItemCompleted(dayItem.id, on: date, completedRecords: completedRecords),
                   !isReminderSkipped(for: dayItem.id, on: date),
                   let reminderDate = reminderDate(from: reminderTime, on: date),
@@ -215,9 +217,11 @@ final class ReminderNotificationService {
     }
 
     private func shouldScheduleSoftReminder(for dayItem: DayItem, completedRecords: [DayItemRecord], date: Date) -> Bool {
+        let postponements = loadPostponements()
+
         guard dayItem.isHabit,
               let reminderTime = dayItem.reminderTime,
-              isHabit(dayItem, activeOn: date),
+              isHabit(dayItem, activeOn: date, postponements: postponements),
               !isDayItemCompleted(dayItem.id, on: date, completedRecords: completedRecords),
               let regularReminderDate = reminderDate(from: reminderTime, on: date),
               let softReminderDate = softReminderDate(for: date) else {
@@ -252,10 +256,36 @@ final class ReminderNotificationService {
         }
     }
 
-    private func isHabit(_ dayItem: DayItem, activeOn date: Date) -> Bool {
+    private func isHabit(
+        _ dayItem: DayItem,
+        activeOn date: Date,
+        postponements: [String: String]
+    ) -> Bool {
         let weekday = Calendar.current.component(.weekday, from: date)
         let adjustedWeekday = weekday == 1 ? 7 : weekday - 1
-        return dayItem.schedule.contains { $0.numberValue == adjustedWeekday }
+        let isScheduled = dayItem.schedule.contains { $0.numberValue == adjustedWeekday }
+        let dateKey = postponementDateKey(for: date)
+        let itemPrefix = "\(dayItem.id.uuidString)_"
+        let isPostponedFromDate = postponements["\(itemPrefix)\(dateKey)"] != nil
+        let isPostponedToDate = postponements.contains { key, value in
+            key.hasPrefix(itemPrefix) && value == dateKey
+        }
+
+        return (isScheduled || isPostponedToDate) && !isPostponedFromDate
+    }
+
+    private func loadPostponements() -> [String: String] {
+        UserDefaults.standard.dictionary(forKey: postponedDayItemsKey) as? [String: String] ?? [:]
+    }
+
+    private func postponementDateKey(for date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(
+            format: "%04d-%02d-%02d",
+            components.year ?? 0,
+            components.month ?? 0,
+            components.day ?? 0
+        )
     }
 
     private func dateComponents(from date: Date) -> DateComponents {

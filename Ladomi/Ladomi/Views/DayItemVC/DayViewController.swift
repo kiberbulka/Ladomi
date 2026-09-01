@@ -170,6 +170,10 @@ class DayViewController: UIViewController {
         title: NSLocalizedString("eventsFilter", comment: ""),
         action: #selector(eventsFilterChipDidTap)
     )
+    private lazy var completedFilterChip = makeFilterChip(
+        title: NSLocalizedString("completedDayItems", comment: ""),
+        action: #selector(completedFilterChipDidTap)
+    )
     private lazy var notCompletedFilterChip = makeFilterChip(
         title: NSLocalizedString("uncompletedDayItems", comment: ""),
         action: #selector(notCompletedFilterChipDidTap)
@@ -180,6 +184,7 @@ class DayViewController: UIViewController {
             allFilterChip,
             habitsFilterChip,
             eventsFilterChip,
+            completedFilterChip,
             notCompletedFilterChip
         ])
         stackView.axis = .horizontal
@@ -231,7 +236,7 @@ class DayViewController: UIViewController {
         searchTextField.textColor = .ypBlack
         searchTextField.tintColor = .ypBlack
         searchTextField.font = .ladomiRegular(17)
-        searchTextField.layer.cornerRadius = 28
+        searchTextField.layer.cornerRadius = 22
         searchTextField.layer.masksToBounds = true
         searchTextField.borderStyle = .none
         let attributes: [NSAttributedString.Key: Any] = [
@@ -241,7 +246,7 @@ class DayViewController: UIViewController {
         let searchTextFieldText = NSLocalizedString("searchBar", comment: "Строка поиска")
         searchTextField.attributedPlaceholder = NSAttributedString(string: searchTextFieldText, attributes: attributes)
         searchTextField.clearButtonMode = .never
-        searchTextField.heightAnchor.constraint(equalToConstant: 56).isActive = true
+        searchTextField.heightAnchor.constraint(equalToConstant: 44).isActive = true
         searchTextField.delegate = self
         return searchTextField
     }()
@@ -549,6 +554,7 @@ class DayViewController: UIViewController {
             (allFilterChip, .all),
             (habitsFilterChip, .habits),
             (eventsFilterChip, .events),
+            (completedFilterChip, .completed),
             (notCompletedFilterChip, .notCompleted)
         ]
 
@@ -641,6 +647,10 @@ class DayViewController: UIViewController {
 
     @objc private func eventsFilterChipDidTap() {
         selectedFilter = .events
+    }
+
+    @objc private func completedFilterChipDidTap() {
+        selectedFilter = .completed
     }
 
     @objc private func notCompletedFilterChipDidTap() {
@@ -767,6 +777,8 @@ class DayViewController: UIViewController {
                 filterCondition = dayItem.isHabit
             case .events:
                 filterCondition = !dayItem.isHabit
+            case .completed:
+                filterCondition = isDayItemCompleted(dayItem, on: date)
             case .notCompleted:
                 filterCondition = !isDayItemCompleted(dayItem, on: date)
             case .all:
@@ -1087,6 +1099,10 @@ class DayViewController: UIViewController {
 
         if dayItem.isHabit {
             ReminderNotificationService.shared.removeReminder(for: dayItem.id, on: sourceDate)
+            ReminderNotificationService.shared.scheduleReminder(
+                for: dayItem,
+                completedRecords: completedDayItems
+            )
         } else {
             ReminderNotificationService.shared.removeReminder(for: dayItem.id)
         }
@@ -1379,7 +1395,11 @@ extension DayViewController: DayItemCellDelegate {
                     date: datePicker.date
                 )
                 updateTodayWidgetSnapshot()
-                collectionView.reloadItems(at: [indexPath])
+                if selectedFilter == .completed {
+                    reloadVisibleCategories()
+                } else {
+                    collectionView.reloadItems(at: [indexPath])
+                }
             } else {
                 ReminderNotificationService.shared.scheduleReminder(
                     for: dayItem,
