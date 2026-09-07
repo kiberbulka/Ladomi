@@ -20,39 +20,64 @@ struct AnalyticsInsight {
     let detail: String
 }
 
-struct HabitAttentionItem {
-    let habitID: UUID
+struct DayItemAttentionItem {
+    let dayItemID: UUID
     let name: String
     let emoji: String
-    let missedScheduledDays: Int
+    let kind: DayItemAttentionKind
+    let missedDays: Int
 }
 
 struct AnalyticsData {
     let analyzedDays: Int
     let moodDays: Int
     let averageCompletionRate: Int
-    let habitAttentionItems: [HabitAttentionItem]
+    let attentionItems: [DayItemAttentionItem]
     let insights: [AnalyticsInsight]
 }
 
 final class StatisticsService {
     private struct DayMetric {
         let date: Date
-        let plannedCount: Int
-        let completedCount: Int
+        let habitPlannedCount: Int
+        let habitCompletedCount: Int
+        let eventPlannedCount: Int
+        let eventCompletedCount: Int
         let mood: Mood?
+        let sleepHours: Double?
 
-        var completionRate: Double {
-            guard plannedCount > 0 else {
-                return 0
-            }
+        var plannedCount: Int {
+            habitPlannedCount + eventPlannedCount
+        }
 
-            return Double(completedCount) / Double(plannedCount)
+        var completedCount: Int {
+            habitCompletedCount + eventCompletedCount
         }
 
         var weekdayIndex: Int {
             let weekday = Calendar.current.component(.weekday, from: date)
             return weekday == 1 ? 7 : weekday - 1
+        }
+    }
+
+    private struct ComfortLoadCandidate {
+        let mood: Mood
+        let comfortableLimit: Int
+        let comfortableRate: Double
+        let overloadedRate: Double
+
+        var completionDrop: Double {
+            comfortableRate - overloadedRate
+        }
+    }
+
+    private struct SleepCandidate {
+        let typicalHours: Double
+        let shorterSleepRate: Double
+        let longerSleepRate: Double
+
+        var improvementAfterLongerSleep: Double {
+            longerSleepRate - shorterSleepRate
         }
     }
 
@@ -63,16 +88,6 @@ final class StatisticsService {
         case tired
         case bad
 
-        var score: Int {
-            switch self {
-            case .great: return 5
-            case .good: return 4
-            case .calm: return 3
-            case .tired: return 2
-            case .bad: return 1
-            }
-        }
-
         var emoji: String {
             switch self {
             case .great: return "🤩"
@@ -81,6 +96,10 @@ final class StatisticsService {
             case .tired: return "🥱"
             case .bad: return "😞"
             }
+        }
+
+        var localizedName: String {
+            NSLocalizedString("calendar.mood.\(rawValue)", comment: "Mood name in analytics")
         }
     }
     
@@ -91,6 +110,14 @@ final class StatisticsService {
     private let calendar = Calendar.current
     private let moodStorageKey = "dayItem.dayMoodByDate"
     private let postponedDayItemsKey = "postponedDayItemsByDate"
+    private let analyticsWindowDays = 28
+    private let minimumMoodDays = 5
+    private let minimumLoadGroupDays = 2
+    private let minimumWeekdayDays = 3
+    private let minimumSleepDays = 5
+    private let minimumSleepGroupDays = 2
+    private let smoothingPriorItems = 5.0
+    private let recencyHalfLifeDays = 30.0
 
     private lazy var moodDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -169,7 +196,10 @@ final class StatisticsService {
         )
     }
 
-    func fetchAnalytics() -> AnalyticsData {
+    func fetchAnalytics(
+        sleepHoursByDate: [String: Double] = [:],
+        sleepIntegrationEnabled: Bool = false
+    ) -> AnalyticsData {
         let allDayItems = dayItemStore.fetchDayItems()
         let dayItems = allDayItems.filter { !$0.isStopList }
         let dayItemIDs = Set(dayItems.map { $0.id })
@@ -178,7 +208,11 @@ final class StatisticsService {
         let records = allRecords.filter { dayItemIDs.contains($0.dayItemID) }
         let today = calendar.startOfDay(for: Date())
         let postponements = UserDefaults.standard.dictionary(forKey: postponedDayItemsKey) as? [String: String] ?? [:]
-        let periodStart = statisticsPeriodStart(dayItems: dayItems, records: records, today: today)
+        let periodStart = calendar.date(
+            byAdding: .day,
+            value: -(analyticsWindowDays - 1),
+            to: today
+        ) ?? today
         let periodDates = dates(from: periodStart, through: today)
         let recordsByDate = Dictionary(grouping: records) { calendar.startOfDay(for: $0.date) }
         let eventCompletionDates = makeEventCompletionDates(dayItems: dayItems, records: records)
@@ -194,25 +228,42 @@ final class StatisticsService {
         }.count
 
         let metrics = periodDates.map { date in
-            let plannedIDs = plannedDayItemIDs(
+            let habitPlannedIDs = analyticsHabitIDs(
+                on: date,
+                dayItems: dayItems,
+                dayItemStartDates: dayItemStartDates,
+                postponements: postponements
+            )
+            let eventPlannedIDs = analyticsEventIDs(
                 on: date,
                 dayItems: dayItems,
                 eventCompletionDates: eventCompletionDates,
                 dayItemStartDates: dayItemStartDates,
+                postponements: postponements,
                 today: today
             )
             let completedIDs = Set(recordsByDate[date, default: []].map { $0.dayItemID })
-            let completedPlannedCount = completedIDs.intersection(plannedIDs).count
+            let completedHabitCount = completedIDs.intersection(habitPlannedIDs).count
+            let completedEventCount = eventPlannedIDs.filter { eventCompletionDates[$0] != nil }.count
 
             return DayMetric(
                 date: date,
-                plannedCount: plannedIDs.count,
-                completedCount: completedPlannedCount,
-                mood: moodsByDate[moodKey(for: date)]
+                habitPlannedCount: habitPlannedIDs.count,
+                habitCompletedCount: completedHabitCount,
+                eventPlannedCount: eventPlannedIDs.count,
+                eventCompletedCount: completedEventCount,
+                mood: moodsByDate[moodKey(for: date)],
+                sleepHours: sleepHoursByDate[moodKey(for: date)]
             )
         }
 
-        let plannedMetrics = metrics.filter { $0.plannedCount > 0 }
+        let plannedMetrics = metrics.filter { metric in
+            guard metric.plannedCount > 0 else {
+                return false
+            }
+
+            return metric.date < today || metric.completedCount == metric.plannedCount
+        }
         let moodMetrics = plannedMetrics.filter { $0.mood != nil }
         let averageCompletionRate = percentage(averageRate(for: plannedMetrics))
 
@@ -220,8 +271,8 @@ final class StatisticsService {
             analyzedDays: plannedMetrics.count,
             moodDays: moodMetrics.count,
             averageCompletionRate: averageCompletionRate,
-            habitAttentionItems: makeHabitAttentionItems(
-                habits: allDayItems.filter { $0.isHabit && !$0.isArchived && !$0.isStopList },
+            attentionItems: makeAttentionItems(
+                dayItems: allDayItems.filter { !$0.isArchived && !$0.isStopList },
                 records: allRecords,
                 postponements: postponements,
                 today: today
@@ -229,91 +280,45 @@ final class StatisticsService {
             insights: makeInsights(
                 metrics: plannedMetrics,
                 moodMetrics: moodMetrics,
-                stopListSlipCount: stopListSlipCount
+                stopListSlipCount: stopListSlipCount,
+                sleepIntegrationEnabled: sleepIntegrationEnabled,
+                referenceDate: today
             )
         )
     }
 
-    private func makeHabitAttentionItems(
-        habits: [DayItem],
+    private func makeAttentionItems(
+        dayItems: [DayItem],
         records: [DayItemRecord],
         postponements: [String: String],
         today: Date
-    ) -> [HabitAttentionItem] {
-        let completedDatesByHabit = Dictionary(grouping: records) { $0.dayItemID }.mapValues { records in
-            Set(records.map { calendar.startOfDay(for: $0.date) })
-        }
-
-        let items = habits.compactMap { habit -> HabitAttentionItem? in
-            let completedDates = completedDatesByHabit[habit.id, default: []]
-
-            if isHabitExpected(habit, on: today, postponements: postponements),
-               completedDates.contains(today) {
+    ) -> [DayItemAttentionItem] {
+        let items = dayItems.compactMap { dayItem -> DayItemAttentionItem? in
+            guard let status = DayItemInactivityCalculator.status(
+                for: dayItem,
+                records: records,
+                postponements: postponements,
+                through: today,
+                calendar: calendar
+            ), status.missedDays >= 3 else {
                 return nil
             }
 
-            let createdDate = calendar.startOfDay(for: habit.createdDate)
-            guard var date = calendar.date(byAdding: .day, value: -1, to: today) else {
-                return nil
-            }
-
-            var missedScheduledDays = 0
-            while date >= createdDate {
-                if isHabitExpected(habit, on: date, postponements: postponements) {
-                    if completedDates.contains(date) {
-                        break
-                    }
-                    missedScheduledDays += 1
-                }
-
-                guard let previousDate = calendar.date(byAdding: .day, value: -1, to: date) else {
-                    break
-                }
-                date = previousDate
-            }
-
-            guard missedScheduledDays >= 3 else {
-                return nil
-            }
-
-            return HabitAttentionItem(
-                habitID: habit.id,
-                name: habit.name,
-                emoji: habit.emoji,
-                missedScheduledDays: missedScheduledDays
+            return DayItemAttentionItem(
+                dayItemID: dayItem.id,
+                name: dayItem.name,
+                emoji: dayItem.emoji,
+                kind: status.kind,
+                missedDays: status.missedDays
             )
         }
 
-        return Array(
-            items
-                .sorted {
-                    if $0.missedScheduledDays == $1.missedScheduledDays {
-                        return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-                    }
-                    return $0.missedScheduledDays > $1.missedScheduledDays
-                }
-                .prefix(3)
-        )
-    }
-
-    private func isHabitExpected(
-        _ habit: DayItem,
-        on date: Date,
-        postponements: [String: String]
-    ) -> Bool {
-        let sourceKey = postponementKey(for: habit.id, date: date)
-        let isPostponedFromDate = postponements[sourceKey] != nil
-        let targetDateKey = moodKey(for: date)
-        let habitPrefix = "\(habit.id.uuidString)_"
-        let isPostponedToDate = postponements.contains { key, value in
-            key.hasPrefix(habitPrefix) && value == targetDateKey
+        return items.sorted {
+            if $0.missedDays == $1.missedDays {
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            return $0.missedDays > $1.missedDays
         }
-
-        return (isHabit(habit, activeOn: date) && !isPostponedFromDate) || isPostponedToDate
-    }
-
-    private func postponementKey(for habitID: UUID, date: Date) -> String {
-        "\(habitID.uuidString)_\(moodKey(for: date))"
     }
 
     private func recordsCount(in interval: DateInterval?, records: [DayItemRecord]) -> Int {
@@ -441,28 +446,63 @@ final class StatisticsService {
         return Set(activeIDs)
     }
 
-    private func plannedDayItemIDs(
+    private func analyticsHabitIDs(
+        on date: Date,
+        dayItems: [DayItem],
+        dayItemStartDates: [UUID: Date],
+        postponements: [String: String]
+    ) -> Set<UUID> {
+        let startOfDay = calendar.startOfDay(for: date)
+        let habitIDs = dayItems.compactMap { dayItem -> UUID? in
+            guard dayItem.isHabit,
+                  isDayItemAvailable(dayItem, on: startOfDay, dayItemStartDates: dayItemStartDates),
+                  DayItemInactivityCalculator.isHabitExpected(
+                    dayItem,
+                    on: startOfDay,
+                    postponements: postponements,
+                    calendar: calendar
+                  ) else {
+                return nil
+            }
+
+            return dayItem.id
+        }
+
+        return Set(habitIDs)
+    }
+
+    private func analyticsEventIDs(
         on date: Date,
         dayItems: [DayItem],
         eventCompletionDates: [UUID: Date],
         dayItemStartDates: [UUID: Date],
+        postponements: [String: String],
         today: Date
     ) -> Set<UUID> {
         let startOfDay = calendar.startOfDay(for: date)
         let today = calendar.startOfDay(for: today)
-        let plannedIDs = dayItems.compactMap { dayItem -> UUID? in
-            guard isDayItemAvailable(dayItem, on: startOfDay, dayItemStartDates: dayItemStartDates) else {
+        let eventIDs = dayItems.compactMap { dayItem -> UUID? in
+            guard !dayItem.isHabit,
+                  isDayItemAvailable(dayItem, on: startOfDay, dayItemStartDates: dayItemStartDates) else {
                 return nil
             }
 
-            if dayItem.isHabit {
-                return isHabit(dayItem, activeOn: startOfDay) ? dayItem.id : nil
+            let effectiveDate = DayItemInactivityCalculator.effectiveEventDate(
+                for: dayItem,
+                postponements: postponements,
+                calendar: calendar
+            )
+            let analyticsDate = eventCompletionDates[dayItem.id] ?? effectiveDate
+
+            guard analyticsDate <= today,
+                  calendar.isDate(analyticsDate, inSameDayAs: startOfDay) else {
+                return nil
             }
 
-            return isEventPlanned(dayItem, on: startOfDay, eventCompletionDates: eventCompletionDates, today: today) ? dayItem.id : nil
+            return dayItem.id
         }
 
-        return Set(plannedIDs)
+        return Set(eventIDs)
     }
 
     private func isDayItemAvailable(_ dayItem: DayItem, on date: Date, dayItemStartDates: [UUID: Date]) -> Bool {
@@ -512,21 +552,6 @@ final class StatisticsService {
         return calendar.isDate(activeDate, inSameDayAs: date)
     }
 
-    private func isEventPlanned(_ dayItem: DayItem, on date: Date, eventCompletionDates: [UUID: Date], today: Date) -> Bool {
-        let startOfDay = calendar.startOfDay(for: date)
-        let eventDate = calendar.startOfDay(for: dayItem.eventDate ?? today)
-
-        guard eventDate <= startOfDay else {
-            return false
-        }
-
-        if let completionDate = eventCompletionDates[dayItem.id] {
-            return startOfDay <= calendar.startOfDay(for: completionDate)
-        }
-
-        return startOfDay <= today
-    }
-
     private func fetchMoodsByDate() -> [String: Mood] {
         let rawMoods = UserDefaults.standard.dictionary(forKey: moodStorageKey) as? [String: String] ?? [:]
         return rawMoods.compactMapValues { Mood(rawValue: $0) }
@@ -539,7 +564,9 @@ final class StatisticsService {
     private func makeInsights(
         metrics: [DayMetric],
         moodMetrics: [DayMetric],
-        stopListSlipCount: Int
+        stopListSlipCount: Int,
+        sleepIntegrationEnabled: Bool,
+        referenceDate: Date
     ) -> [AnalyticsInsight] {
         guard !metrics.isEmpty else {
             return []
@@ -553,27 +580,48 @@ final class StatisticsService {
             insights.append(stopListInsight)
         }
 
-        if let moodInsight = makeMoodInsight(metrics: moodMetrics) {
-            insights.append(moodInsight)
+        let comfortCandidate = makeComfortLoadCandidate(
+            metrics: moodMetrics,
+            allMetrics: metrics,
+            referenceDate: referenceDate
+        )
+        let sleepCandidate = makeSleepCandidate(metrics: metrics, referenceDate: referenceDate)
+        if let comfortCandidate {
+            insights.append(makeComfortLoadInsight(candidate: comfortCandidate))
         } else {
             insights.append(
                 AnalyticsInsight(
-                    title: NSLocalizedString("analytics.noMood.title", comment: "No mood data title"),
-                    value: NSLocalizedString("analytics.noMood.value", comment: "No mood data value"),
-                    detail: NSLocalizedString("analytics.noMood.detail", comment: "No mood data detail")
+                    title: NSLocalizedString("analytics.comfort.title", comment: "Comfortable load title"),
+                    value: NSLocalizedString("analytics.comfort.noData.value", comment: "Comfortable load missing data value"),
+                    detail: String(
+                        format: NSLocalizedString("analytics.comfort.noData.detail", comment: "Comfortable load missing data detail"),
+                        minimumMoodDays
+                    )
                 )
             )
         }
 
-        if let loadInsight = makeLoadInsight(metrics: metrics) {
-            insights.append(loadInsight)
+        insights.append(
+            makeSleepInsight(
+                candidate: sleepCandidate,
+                isEnabled: sleepIntegrationEnabled
+            )
+        )
+
+        if let itemTypeInsight = makeItemTypeInsight(metrics: metrics) {
+            insights.append(itemTypeInsight)
         }
 
         if let weekdayInsight = makeWeekdayInsight(metrics: metrics) {
             insights.append(weekdayInsight)
         }
 
-        insights.append(makeAdviceInsight(metrics: metrics, moodMetrics: moodMetrics))
+        insights.append(
+            makeAdviceInsight(
+                comfortCandidate: comfortCandidate,
+                sleepCandidate: sleepCandidate
+            )
+        )
         return insights
     }
 
@@ -604,72 +652,213 @@ final class StatisticsService {
         )
     }
 
-    private func makeMoodInsight(metrics: [DayMetric]) -> AnalyticsInsight? {
-        let grouped = Dictionary(grouping: metrics) { $0.mood }
-        let groups = grouped.compactMap { mood, metrics -> (mood: Mood, rate: Double, count: Int)? in
-            guard let mood = mood, metrics.count >= 2 else {
-                return nil
+    private func makeComfortLoadCandidate(
+        metrics: [DayMetric],
+        allMetrics: [DayMetric],
+        referenceDate: Date
+    ) -> ComfortLoadCandidate? {
+        let baselineRate = weightedRate(for: allMetrics, referenceDate: referenceDate)
+        let typicalPlan = medianPlanCount(in: allMetrics)
+        let groupedByMood = Dictionary(grouping: metrics) { $0.mood }
+        var candidates: [(candidate: ComfortLoadCandidate, score: Double)] = []
+
+        for (mood, moodMetrics) in groupedByMood {
+            guard let mood, moodMetrics.count >= minimumMoodDays else {
+                continue
             }
 
-            return (mood, averageRate(for: metrics), metrics.count)
+            let thresholds = Array(Set(moodMetrics.map { $0.plannedCount })).sorted().dropLast()
+            for threshold in thresholds {
+                let comfortableDays = moodMetrics.filter { $0.plannedCount <= threshold }
+                let overloadedDays = moodMetrics.filter { $0.plannedCount > threshold }
+                guard comfortableDays.count >= minimumLoadGroupDays,
+                      overloadedDays.count >= minimumLoadGroupDays else {
+                    continue
+                }
+
+                let comfortableRate = smoothedRate(
+                    for: comfortableDays,
+                    baselineRate: baselineRate,
+                    referenceDate: referenceDate
+                )
+                let overloadedRate = smoothedRate(
+                    for: overloadedDays,
+                    baselineRate: baselineRate,
+                    referenceDate: referenceDate
+                )
+                let candidate = ComfortLoadCandidate(
+                    mood: mood,
+                    comfortableLimit: threshold,
+                    comfortableRate: comfortableRate,
+                    overloadedRate: overloadedRate
+                )
+                let distanceFromTypicalPlan = abs(Double(threshold) - typicalPlan)
+                let score = candidate.completionDrop - distanceFromTypicalPlan * 0.005
+                candidates.append((candidate, score))
+            }
         }
 
-        guard let best = groups.max(by: { $0.rate < $1.rate }) else {
-            return nil
+        return candidates.max(by: { $0.score < $1.score })?.candidate
+    }
+
+    private func makeComfortLoadInsight(candidate: ComfortLoadCandidate) -> AnalyticsInsight {
+        let hasCompletionDrop = candidate.completionDrop >= 0.05
+        let value: String
+        if hasCompletionDrop {
+            value = String(
+                format: NSLocalizedString("analytics.comfort.value", comment: "Comfortable load value"),
+                candidate.comfortableLimit,
+                localizedItemWord(for: candidate.comfortableLimit)
+            )
+        } else {
+            value = NSLocalizedString("analytics.comfort.stableValue", comment: "Stable comfortable load value")
         }
-
-        let worst = groups.min(by: { $0.rate < $1.rate })
-        let value = "\(best.mood.emoji) \(percentage(best.rate))%"
-
-        if let worst = worst, worst.mood != best.mood {
-            let format = NSLocalizedString("analytics.mood.detailWithWorst", comment: "Mood analytics detail with worst mood")
-            return AnalyticsInsight(
-                title: NSLocalizedString("analytics.mood.title", comment: "Mood analytics title"),
-                value: value,
-                detail: String(format: format, best.mood.emoji, percentage(best.rate), worst.mood.emoji, percentage(worst.rate))
+        let detailKey = hasCompletionDrop
+            ? "analytics.comfort.detailDrop"
+            : "analytics.comfort.detailStable"
+        let detail: String
+        if hasCompletionDrop {
+            detail = String(
+                format: NSLocalizedString(detailKey, comment: "Comfortable load detail"),
+                candidate.mood.localizedName,
+                percentage(candidate.comfortableRate),
+                percentage(candidate.overloadedRate)
+            )
+        } else {
+            detail = String(
+                format: NSLocalizedString(detailKey, comment: "Comfortable load detail"),
+                candidate.mood.localizedName,
+                candidate.comfortableLimit,
+                percentage(candidate.comfortableRate),
+                percentage(candidate.overloadedRate)
             )
         }
 
-        let format = NSLocalizedString("analytics.mood.detail", comment: "Mood analytics detail")
         return AnalyticsInsight(
-            title: NSLocalizedString("analytics.mood.title", comment: "Mood analytics title"),
+            title: NSLocalizedString("analytics.comfort.title", comment: "Comfortable load title"),
             value: value,
-            detail: String(format: format, best.mood.emoji, percentage(best.rate))
+            detail: detail
         )
     }
 
-    private func makeLoadInsight(metrics: [DayMetric]) -> AnalyticsInsight? {
-        guard metrics.count >= 4 else {
+    private func makeItemTypeInsight(metrics: [DayMetric]) -> AnalyticsInsight? {
+        let habitPlanned = metrics.reduce(0) { $0 + $1.habitPlannedCount }
+        let habitCompleted = metrics.reduce(0) { $0 + $1.habitCompletedCount }
+        let eventPlanned = metrics.reduce(0) { $0 + $1.eventPlannedCount }
+        let eventCompleted = metrics.reduce(0) { $0 + $1.eventCompletedCount }
+        guard habitPlanned > 0, eventPlanned > 0 else {
             return nil
         }
 
-        let averagePlan = Double(metrics.reduce(0) { $0 + $1.plannedCount }) / Double(metrics.count)
-        let heavyDays = metrics.filter { Double($0.plannedCount) > averagePlan }
-        let lightDays = metrics.filter { Double($0.plannedCount) <= averagePlan }
-
-        guard !heavyDays.isEmpty, !lightDays.isEmpty else {
-            return nil
-        }
-
-        let heavyRate = averageRate(for: heavyDays)
-        let lightRate = averageRate(for: lightDays)
-        let difference = percentage(abs(lightRate - heavyRate))
-        let value = heavyRate < lightRate ? "-\(difference)%" : "+\(difference)%"
-        let format = heavyRate < lightRate
-            ? NSLocalizedString("analytics.load.detailHeavy", comment: "Heavy load analytics detail")
-            : NSLocalizedString("analytics.load.detailStable", comment: "Stable load analytics detail")
+        let habitRate = percentage(Double(habitCompleted) / Double(habitPlanned))
+        let eventRate = percentage(Double(eventCompleted) / Double(eventPlanned))
+        let value = String(
+            format: NSLocalizedString("analytics.itemType.value", comment: "Item type analytics value"),
+            habitRate,
+            eventRate
+        )
+        let detail = String(
+            format: NSLocalizedString("analytics.itemType.detail", comment: "Item type analytics detail"),
+            habitCompleted,
+            habitPlanned,
+            eventCompleted,
+            eventPlanned
+        )
 
         return AnalyticsInsight(
-            title: NSLocalizedString("analytics.load.title", comment: "Load analytics title"),
+            title: NSLocalizedString("analytics.itemType.title", comment: "Item type analytics title"),
             value: value,
-            detail: String(format: format, Int(ceil(averagePlan)), percentage(heavyRate), percentage(lightRate))
+            detail: detail
+        )
+    }
+
+    private func makeSleepCandidate(
+        metrics: [DayMetric],
+        referenceDate: Date
+    ) -> SleepCandidate? {
+        let sleepMetrics = metrics.filter { ($0.sleepHours ?? 0) > 0 }
+        guard sleepMetrics.count >= minimumSleepDays else {
+            return nil
+        }
+
+        let sortedHours = sleepMetrics.compactMap { $0.sleepHours }.sorted()
+        let middle = sortedHours.count / 2
+        let typicalHours: Double
+        if sortedHours.count.isMultiple(of: 2) {
+            typicalHours = (sortedHours[middle - 1] + sortedHours[middle]) / 2
+        } else {
+            typicalHours = sortedHours[middle]
+        }
+
+        let shorterSleepMetrics = sleepMetrics.filter { ($0.sleepHours ?? 0) < typicalHours }
+        let longerSleepMetrics = sleepMetrics.filter { ($0.sleepHours ?? 0) >= typicalHours }
+        guard shorterSleepMetrics.count >= minimumSleepGroupDays,
+              longerSleepMetrics.count >= minimumSleepGroupDays else {
+            return nil
+        }
+
+        let baselineRate = weightedRate(for: metrics, referenceDate: referenceDate)
+        return SleepCandidate(
+            typicalHours: typicalHours,
+            shorterSleepRate: smoothedRate(
+                for: shorterSleepMetrics,
+                baselineRate: baselineRate,
+                referenceDate: referenceDate
+            ),
+            longerSleepRate: smoothedRate(
+                for: longerSleepMetrics,
+                baselineRate: baselineRate,
+                referenceDate: referenceDate
+            )
+        )
+    }
+
+    private func makeSleepInsight(
+        candidate: SleepCandidate?,
+        isEnabled: Bool
+    ) -> AnalyticsInsight {
+        guard isEnabled else {
+            return AnalyticsInsight(
+                title: NSLocalizedString("analytics.sleep.title", comment: "Sleep analytics title"),
+                value: NSLocalizedString("analytics.sleep.connect.value", comment: "Connect Health value"),
+                detail: NSLocalizedString("analytics.sleep.connect.detail", comment: "Connect Health detail")
+            )
+        }
+
+        guard let candidate else {
+            return AnalyticsInsight(
+                title: NSLocalizedString("analytics.sleep.title", comment: "Sleep analytics title"),
+                value: NSLocalizedString("analytics.sleep.noData.value", comment: "Missing sleep data value"),
+                detail: String(
+                    format: NSLocalizedString("analytics.sleep.noData.detail", comment: "Missing sleep data detail"),
+                    minimumSleepDays
+                )
+            )
+        }
+
+        let duration = formattedSleepDuration(candidate.typicalHours)
+        let hasImprovement = candidate.improvementAfterLongerSleep >= 0.05
+        let detailKey = hasImprovement
+            ? "analytics.sleep.detailImprovement"
+            : "analytics.sleep.detailStable"
+        let detail = String(
+            format: NSLocalizedString(detailKey, comment: "Sleep analytics detail"),
+            duration,
+            percentage(candidate.longerSleepRate),
+            percentage(candidate.shorterSleepRate)
+        )
+
+        return AnalyticsInsight(
+            title: NSLocalizedString("analytics.sleep.title", comment: "Sleep analytics title"),
+            value: duration,
+            detail: detail
         )
     }
 
     private func makeWeekdayInsight(metrics: [DayMetric]) -> AnalyticsInsight? {
         let grouped = Dictionary(grouping: metrics) { $0.weekdayIndex }
         let groups = grouped.compactMap { weekday, metrics -> (weekday: Int, rate: Double, count: Int)? in
-            guard metrics.count >= 2 else {
+            guard metrics.count >= minimumWeekdayDays else {
                 return nil
             }
 
@@ -688,30 +877,70 @@ final class StatisticsService {
         )
     }
 
-    private func makeAdviceInsight(metrics: [DayMetric], moodMetrics: [DayMetric]) -> AnalyticsInsight {
-        let tiredMetrics = moodMetrics.filter { ($0.mood?.score ?? 0) <= 2 }
-        if tiredMetrics.count >= 2, averageRate(for: tiredMetrics) < averageRate(for: metrics) {
+    private func makeAdviceInsight(
+        comfortCandidate: ComfortLoadCandidate?,
+        sleepCandidate: SleepCandidate?
+    ) -> AnalyticsInsight {
+        let sleepImprovement = sleepCandidate?.improvementAfterLongerSleep ?? 0
+        let comfortDrop = comfortCandidate?.completionDrop ?? 0
+
+        if let sleepCandidate,
+           sleepImprovement >= 0.05,
+           sleepImprovement >= comfortDrop {
+            let detail = String(
+                format: NSLocalizedString("analytics.advice.sleep.detail", comment: "Short sleep advice detail"),
+                formattedSleepDuration(sleepCandidate.typicalHours)
+            )
             return AnalyticsInsight(
                 title: NSLocalizedString("analytics.advice.title", comment: "Advice analytics title"),
-                value: NSLocalizedString("analytics.advice.tired.value", comment: "Tired advice value"),
-                detail: NSLocalizedString("analytics.advice.tired.detail", comment: "Tired advice detail")
+                value: NSLocalizedString("analytics.advice.sleep.value", comment: "Short sleep advice value"),
+                detail: detail
             )
         }
 
-        let averagePlan = Double(metrics.reduce(0) { $0 + $1.plannedCount }) / Double(metrics.count)
-        let heavyDays = metrics.filter { Double($0.plannedCount) > averagePlan }
-        if !heavyDays.isEmpty, averageRate(for: heavyDays) < averageRate(for: metrics) {
+        guard let candidate = comfortCandidate else {
             return AnalyticsInsight(
                 title: NSLocalizedString("analytics.advice.title", comment: "Advice analytics title"),
-                value: NSLocalizedString("analytics.advice.load.value", comment: "Load advice value"),
-                detail: NSLocalizedString("analytics.advice.load.detail", comment: "Load advice detail")
+                value: NSLocalizedString("analytics.advice.collect.value", comment: "Collect data advice value"),
+                detail: NSLocalizedString("analytics.advice.collect.detail", comment: "Collect data advice detail")
+            )
+        }
+
+        if candidate.completionDrop >= 0.05 {
+            let detail = String(
+                format: NSLocalizedString("analytics.advice.comfort.detail", comment: "Comfort limit advice detail"),
+                candidate.mood.emoji,
+                candidate.comfortableLimit
+            )
+            return AnalyticsInsight(
+                title: NSLocalizedString("analytics.advice.title", comment: "Advice analytics title"),
+                value: NSLocalizedString("analytics.advice.comfort.value", comment: "Comfort limit advice value"),
+                detail: detail
             )
         }
 
         return AnalyticsInsight(
             title: NSLocalizedString("analytics.advice.title", comment: "Advice analytics title"),
             value: NSLocalizedString("analytics.advice.stable.value", comment: "Stable advice value"),
-            detail: NSLocalizedString("analytics.advice.stable.detail", comment: "Stable advice detail")
+            detail: NSLocalizedString("analytics.advice.stableV2.detail", comment: "Stable advice detail")
+        )
+    }
+
+    private func formattedSleepDuration(_ hours: Double) -> String {
+        let totalMinutes = max(0, Int((hours * 60).rounded()))
+        let hourCount = totalMinutes / 60
+        let minuteCount = totalMinutes % 60
+        if minuteCount == 0 {
+            return String(
+                format: NSLocalizedString("analytics.sleep.duration.hours", comment: "Sleep duration in hours"),
+                hourCount
+            )
+        }
+
+        return String(
+            format: NSLocalizedString("analytics.sleep.duration.hoursMinutes", comment: "Sleep duration in hours and minutes"),
+            hourCount,
+            minuteCount
         )
     }
 
@@ -729,6 +958,54 @@ final class StatisticsService {
         return Double(totalCompleted) / Double(totalPlanned)
     }
 
+    private func weightedRate(for metrics: [DayMetric], referenceDate: Date) -> Double {
+        let totals = weightedTotals(for: metrics, referenceDate: referenceDate)
+        guard totals.planned > 0 else {
+            return 0
+        }
+
+        return totals.completed / totals.planned
+    }
+
+    private func smoothedRate(
+        for metrics: [DayMetric],
+        baselineRate: Double,
+        referenceDate: Date
+    ) -> Double {
+        let totals = weightedTotals(for: metrics, referenceDate: referenceDate)
+        return (totals.completed + smoothingPriorItems * baselineRate)
+            / (totals.planned + smoothingPriorItems)
+    }
+
+    private func weightedTotals(
+        for metrics: [DayMetric],
+        referenceDate: Date
+    ) -> (planned: Double, completed: Double) {
+        metrics.reduce(into: (planned: 0.0, completed: 0.0)) { result, metric in
+            let daysAgo = max(
+                0,
+                calendar.dateComponents([.day], from: metric.date, to: referenceDate).day ?? 0
+            )
+            let weight = pow(0.5, Double(daysAgo) / recencyHalfLifeDays)
+            result.planned += Double(metric.plannedCount) * weight
+            result.completed += Double(metric.completedCount) * weight
+        }
+    }
+
+    private func medianPlanCount(in metrics: [DayMetric]) -> Double {
+        let values = metrics.map { $0.plannedCount }.sorted()
+        guard !values.isEmpty else {
+            return 0
+        }
+
+        let middle = values.count / 2
+        if values.count.isMultiple(of: 2) {
+            return Double(values[middle - 1] + values[middle]) / 2
+        }
+
+        return Double(values[middle])
+    }
+
     private func percentage(_ value: Double) -> Int {
         Int(round(value * 100))
     }
@@ -743,6 +1020,21 @@ final class StatisticsService {
         } else {
             return NSLocalizedString("analytics.stopList.slip.many", comment: "Many stop-list slips")
         }
+    }
+
+    private func localizedItemWord(for count: Int) -> String {
+        let remainder10 = count % 10
+        let remainder100 = count % 100
+        let key: String
+        if remainder10 == 1 && remainder100 != 11 {
+            key = "analytics.item.one"
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            key = "analytics.item.few"
+        } else {
+            key = "analytics.item.many"
+        }
+
+        return NSLocalizedString(key, comment: "Planned item count word")
     }
 
     private func weekdayName(for weekday: Int) -> String {

@@ -6,6 +6,8 @@
 	<string>Ladomi</string>
 	<key>CFBundleName</key>
 	<string>Ladomi</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Ladomi uses sleep data to show how rest is associated with completing your plans.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

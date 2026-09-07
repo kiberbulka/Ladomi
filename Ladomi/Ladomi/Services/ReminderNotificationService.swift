@@ -2,6 +2,13 @@ import Foundation
 import UserNotifications
 
 final class ReminderNotificationService {
+    private struct InactivityReminderCandidate {
+        let identifier: String
+        let dayItem: DayItem
+        let missedDays: Int
+        let triggerDate: Date
+    }
+
     static let shared = ReminderNotificationService()
 
     private let notificationCenter = UNUserNotificationCenter.current()
@@ -11,10 +18,15 @@ final class ReminderNotificationService {
     private let softReminderMinute = 0
     private let habitReminderPrefix = "habit"
     private let eventReminderPrefix = "event"
+    private let inactivityReminderPrefix = "inactivity"
+    private let inactivityThreshold = 3
+    private let inactivityReminderHour = 10
+    private let scheduledInactivityReminderIDsKey = "scheduledInactivityReminderIDs"
     private let postponedDayItemsKey = "postponedDayItemsByDate"
     private let habitPlanningWindowDays = 60
     private let maxHabitRemindersPerDayItem = 8
     private let skippedReminderQueue = DispatchQueue(label: "dayItem.reminders.skipped")
+    private let inactivityReminderStateQueue = DispatchQueue(label: "dayItem.reminders.inactivityState")
     private var skippedHabitReminderKeys: Set<String> = []
 
     private init() {}
@@ -54,6 +66,7 @@ final class ReminderNotificationService {
     func removeReminder(for dayItemID: UUID) {
         removeRegularReminders(for: dayItemID)
         removeNotifications(matching: notificationIdentifierPrefix(for: dayItemID))
+        removeSavedInactivityReminderIdentifiers(for: dayItemID)
     }
 
     func removeReminder(for dayItemID: UUID, on date: Date) {
@@ -108,6 +121,60 @@ final class ReminderNotificationService {
         let identifier = softReminderIdentifier(for: dayItemID, date: date)
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
         notificationCenter.removeDeliveredNotifications(withIdentifiers: [identifier])
+    }
+
+    func scheduleInactivityReminders(
+        for dayItems: [DayItem],
+        completedRecords: [DayItemRecord],
+        date: Date = Date()
+    ) {
+        let postponements = loadPostponements()
+        let candidates = dayItems.compactMap {
+            inactivityReminderCandidate(
+                for: $0,
+                completedRecords: completedRecords,
+                postponements: postponements,
+                date: date
+            )
+        }
+        let desiredIdentifiers = Set(candidates.map { $0.identifier })
+        let savedIdentifiers = savedInactivityReminderIdentifiers()
+            .intersection(desiredIdentifiers)
+        saveInactivityReminderIdentifiers(savedIdentifiers)
+
+        notificationCenter.getPendingNotificationRequests { [weak self] requests in
+            guard let self else { return }
+
+            let inactivityRequests = requests.filter {
+                self.isInactivityReminderIdentifier($0.identifier)
+            }
+            let stalePendingIdentifiers = inactivityRequests
+                .map { $0.identifier }
+                .filter { !desiredIdentifiers.contains($0) }
+            self.notificationCenter.removePendingNotificationRequests(withIdentifiers: stalePendingIdentifiers)
+
+            self.notificationCenter.getDeliveredNotifications { [weak self] notifications in
+                guard let self else { return }
+
+                let inactivityNotifications = notifications.filter {
+                    self.isInactivityReminderIdentifier($0.request.identifier)
+                }
+                let staleDeliveredIdentifiers = inactivityNotifications
+                    .map { $0.request.identifier }
+                    .filter { !desiredIdentifiers.contains($0) }
+                self.notificationCenter.removeDeliveredNotifications(withIdentifiers: staleDeliveredIdentifiers)
+
+                let existingIdentifiers = Set(
+                    inactivityRequests.map { $0.identifier }
+                    + inactivityNotifications.map { $0.request.identifier }
+                ).union(savedIdentifiers)
+                let candidatesToAdd = candidates.filter {
+                    !existingIdentifiers.contains($0.identifier)
+                }
+
+                self.addInactivityReminderRequests(candidatesToAdd, now: date)
+            }
+        }
     }
 
     private func addNotificationRequests(for dayItem: DayItem, completedRecords: [DayItemRecord]) {
@@ -183,7 +250,11 @@ final class ReminderNotificationService {
         let calendar = Calendar.current
         let now = Date()
         let today = calendar.startOfDay(for: now)
-        let eventDate = calendar.startOfDay(for: dayItem.eventDate ?? today)
+        let eventDate = DayItemInactivityCalculator.effectiveEventDate(
+            for: dayItem,
+            postponements: loadPostponements(),
+            calendar: calendar
+        )
         let effectiveDate = eventDate < today ? today : eventDate
 
         guard !completedRecords.contains(where: { $0.dayItemID == dayItem.id }),
@@ -214,6 +285,270 @@ final class ReminderNotificationService {
                 print("Failed to schedule soft reminder: \(error)")
             }
         }
+    }
+
+    private func addInactivityReminderRequests(
+        _ candidates: [InactivityReminderCandidate],
+        now: Date
+    ) {
+        guard !candidates.isEmpty else {
+            return
+        }
+
+        notificationCenter.getNotificationSettings { [weak self] settings in
+            guard let self else { return }
+
+            switch settings.authorizationStatus {
+            case .authorized, .provisional:
+                candidates.forEach { self.addInactivityReminderRequest($0, now: now) }
+            case .notDetermined:
+                self.notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error {
+                        print("Failed to request notification authorization: \(error)")
+                    }
+
+                    guard granted else { return }
+                    candidates.forEach { self.addInactivityReminderRequest($0, now: now) }
+                }
+            case .denied:
+                break
+            @unknown default:
+                break
+            }
+        }
+    }
+
+    private func addInactivityReminderRequest(
+        _ candidate: InactivityReminderCandidate,
+        now: Date
+    ) {
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString(
+            "inactivity.notification.title",
+            comment: "Inactive day item notification title"
+        )
+        content.body = inactivityNotificationBody(
+            for: candidate.dayItem,
+            missedDays: candidate.missedDays
+        )
+        content.sound = .default
+
+        let trigger: UNNotificationTrigger
+        if candidate.triggerDate <= now {
+            trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
+        } else {
+            trigger = UNCalendarNotificationTrigger(
+                dateMatching: dateComponents(from: candidate.triggerDate),
+                repeats: false
+            )
+        }
+
+        let request = UNNotificationRequest(
+            identifier: candidate.identifier,
+            content: content,
+            trigger: trigger
+        )
+        notificationCenter.add(request) { error in
+            if let error {
+                print("Failed to schedule inactivity reminder: \(error)")
+            } else {
+                self.saveInactivityReminderIdentifier(candidate.identifier)
+            }
+        }
+    }
+
+    private func inactivityReminderCandidate(
+        for dayItem: DayItem,
+        completedRecords: [DayItemRecord],
+        postponements: [String: String],
+        date: Date
+    ) -> InactivityReminderCandidate? {
+        guard !dayItem.isArchived, !dayItem.isStopList else {
+            return nil
+        }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: date)
+        let itemRecords = completedRecords.filter { $0.dayItemID == dayItem.id }
+
+        if !dayItem.isHabit {
+            guard itemRecords.isEmpty else {
+                return nil
+            }
+
+            let eventDate = DayItemInactivityCalculator.effectiveEventDate(
+                for: dayItem,
+                postponements: postponements,
+                calendar: calendar
+            )
+            guard let thresholdDate = calendar.date(
+                byAdding: .day,
+                value: inactivityThreshold,
+                to: eventDate
+            ) else {
+                return nil
+            }
+            let triggerDate = reminderDate(
+                hour: inactivityReminderHour,
+                on: thresholdDate,
+                calendar: calendar
+            )
+            let missedDays = max(
+                inactivityThreshold,
+                calendar.dateComponents([.day], from: eventDate, to: today).day ?? 0
+            )
+
+            return InactivityReminderCandidate(
+                identifier: inactivityReminderIdentifier(
+                    for: dayItem.id,
+                    episodeStartDate: eventDate
+                ),
+                dayItem: dayItem,
+                missedDays: missedDays,
+                triggerDate: triggerDate
+            )
+        }
+
+        guard !dayItem.schedule.isEmpty else {
+            return nil
+        }
+
+        let status = DayItemInactivityCalculator.status(
+            for: dayItem,
+            records: completedRecords,
+            postponements: postponements,
+            through: today,
+            calendar: calendar
+        )
+        var missedDays = status?.missedDays ?? 0
+        var episodeStartDate = status?.firstMissedDate
+        let completedDates = Set(itemRecords.map { calendar.startOfDay(for: $0.date) })
+
+        if missedDays >= inactivityThreshold,
+           let episodeStartDate,
+           let thirdMissedDate = missedHabitThresholdDate(
+               for: dayItem,
+               episodeStartDate: episodeStartDate,
+               postponements: postponements,
+               calendar: calendar
+           ),
+           let notificationDay = calendar.date(byAdding: .day, value: 1, to: thirdMissedDate) {
+            return InactivityReminderCandidate(
+                identifier: inactivityReminderIdentifier(
+                    for: dayItem.id,
+                    episodeStartDate: episodeStartDate
+                ),
+                dayItem: dayItem,
+                missedDays: missedDays,
+                triggerDate: reminderDate(
+                    hour: inactivityReminderHour,
+                    on: notificationDay,
+                    calendar: calendar
+                )
+            )
+        }
+
+        var projectedDate = today
+        for _ in 0..<366 {
+            if DayItemInactivityCalculator.isHabitExpected(
+                dayItem,
+                on: projectedDate,
+                postponements: postponements,
+                calendar: calendar
+            ) {
+                if completedDates.contains(projectedDate) {
+                    missedDays = 0
+                    episodeStartDate = nil
+                } else {
+                    missedDays += 1
+                    if episodeStartDate == nil {
+                        episodeStartDate = projectedDate
+                    }
+
+                    if missedDays >= inactivityThreshold,
+                       let episodeStartDate,
+                       let notificationDay = calendar.date(byAdding: .day, value: 1, to: projectedDate) {
+                        return InactivityReminderCandidate(
+                            identifier: inactivityReminderIdentifier(
+                                for: dayItem.id,
+                                episodeStartDate: episodeStartDate
+                            ),
+                            dayItem: dayItem,
+                            missedDays: inactivityThreshold,
+                            triggerDate: reminderDate(
+                                hour: inactivityReminderHour,
+                                on: notificationDay,
+                                calendar: calendar
+                            )
+                        )
+                    }
+                }
+            }
+
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: projectedDate) else {
+                break
+            }
+            projectedDate = nextDate
+        }
+
+        return nil
+    }
+
+    private func missedHabitThresholdDate(
+        for dayItem: DayItem,
+        episodeStartDate: Date,
+        postponements: [String: String],
+        calendar: Calendar
+    ) -> Date? {
+        var missedDays = 0
+        var date = episodeStartDate
+
+        for _ in 0..<366 {
+            if DayItemInactivityCalculator.isHabitExpected(
+                dayItem,
+                on: date,
+                postponements: postponements,
+                calendar: calendar
+            ) {
+                missedDays += 1
+                if missedDays == inactivityThreshold {
+                    return date
+                }
+            }
+
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: date) else {
+                return nil
+            }
+            date = nextDate
+        }
+
+        return nil
+    }
+
+    private func inactivityNotificationBody(for dayItem: DayItem, missedDays: Int) -> String {
+        let remainder10 = missedDays % 10
+        let remainder100 = missedDays % 100
+        let type = dayItem.isHabit ? "habit" : "event"
+        let form: String
+
+        if remainder10 == 1 && remainder100 != 11 {
+            form = "one"
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            form = "few"
+        } else {
+            form = "many"
+        }
+
+        let key = "inactivity.notification.\(type).body.\(form)"
+        return String(
+            format: NSLocalizedString(key, comment: "Inactive day item notification body"),
+            dayItem.name,
+            missedDays
+        )
+    }
+
+    private func reminderDate(hour: Int, on date: Date, calendar: Calendar) -> Date {
+        calendar.date(bySettingHour: hour, minute: 0, second: 0, of: date) ?? date
     }
 
     private func shouldScheduleSoftReminder(for dayItem: DayItem, completedRecords: [DayItemRecord], date: Date) -> Bool {
@@ -330,6 +665,52 @@ final class ReminderNotificationService {
 
     private func softReminderIdentifier(for dayItemID: UUID, date: Date) -> String {
         notificationIdentifier(for: dayItemID, suffix: "\(softReminderSuffix)-\(dateString(from: date))")
+    }
+
+    private func inactivityReminderIdentifier(for dayItemID: UUID, episodeStartDate: Date) -> String {
+        notificationIdentifier(
+            for: dayItemID,
+            suffix: "\(inactivityReminderPrefix)-\(dateString(from: episodeStartDate))"
+        )
+    }
+
+    private func isInactivityReminderIdentifier(_ identifier: String) -> Bool {
+        identifier.hasPrefix("\(identifierPrefix)-")
+            && identifier.contains("-\(inactivityReminderPrefix)-")
+    }
+
+    private func savedInactivityReminderIdentifiers() -> Set<String> {
+        inactivityReminderStateQueue.sync {
+            Set(UserDefaults.standard.stringArray(forKey: scheduledInactivityReminderIDsKey) ?? [])
+        }
+    }
+
+    private func saveInactivityReminderIdentifiers(_ identifiers: Set<String>) {
+        inactivityReminderStateQueue.sync {
+            UserDefaults.standard.set(Array(identifiers), forKey: scheduledInactivityReminderIDsKey)
+        }
+    }
+
+    private func saveInactivityReminderIdentifier(_ identifier: String) {
+        inactivityReminderStateQueue.sync {
+            var identifiers = Set(
+                UserDefaults.standard.stringArray(forKey: scheduledInactivityReminderIDsKey) ?? []
+            )
+            identifiers.insert(identifier)
+            UserDefaults.standard.set(Array(identifiers), forKey: scheduledInactivityReminderIDsKey)
+        }
+    }
+
+    private func removeSavedInactivityReminderIdentifiers(for dayItemID: UUID) {
+        let prefix = "\(notificationIdentifierPrefix(for: dayItemID))-\(inactivityReminderPrefix)-"
+        inactivityReminderStateQueue.sync {
+            let identifiers = Set(
+                UserDefaults.standard.stringArray(forKey: scheduledInactivityReminderIDsKey) ?? []
+            ).filter {
+                !$0.hasPrefix(prefix)
+            }
+            UserDefaults.standard.set(Array(identifiers), forKey: scheduledInactivityReminderIDsKey)
+        }
     }
 
     private func dateString(from date: Date) -> String {

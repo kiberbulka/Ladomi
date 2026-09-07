@@ -944,6 +944,7 @@ class DayViewController: UIViewController {
             )
         }
         scheduleSoftRemindersForToday()
+        scheduleInactivityReminders()
         updateTodayWidgetSnapshot()
     }
 
@@ -954,6 +955,13 @@ class DayViewController: UIViewController {
                 completedRecords: completedDayItems
             )
         }
+    }
+
+    private func scheduleInactivityReminders() {
+        ReminderNotificationService.shared.scheduleInactivityReminders(
+            for: dayItems.filter { !$0.isStopList },
+            completedRecords: completedDayItems
+        )
     }
 
     private func activeCategories(from categories: [DayItemCategory]) -> [DayItemCategory] {
@@ -997,6 +1005,49 @@ class DayViewController: UIViewController {
         let days = calendar.dateComponents([.day], from: anchorDate, to: targetDate).day ?? 0
 
         return max(0, days)
+    }
+
+    private func habitStreak(for dayItem: DayItem, through selectedDate: Date) -> Int {
+        guard dayItem.isHabit else {
+            return 0
+        }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let selectedDay = calendar.startOfDay(for: selectedDate)
+        let referenceDate = min(selectedDay, today)
+        let createdDate = calendar.startOfDay(for: dayItem.createdDate)
+        let completedDates = Set(
+            completedDayItems
+                .filter { $0.dayItemID == dayItem.id }
+                .map { calendar.startOfDay(for: $0.date) }
+        )
+        let postponements = loadPostponements()
+
+        var streak = 0
+        var date = referenceDate
+
+        while date >= createdDate {
+            if DayItemInactivityCalculator.isHabitExpected(
+                dayItem,
+                on: date,
+                postponements: postponements,
+                calendar: calendar
+            ) {
+                if completedDates.contains(date) {
+                    streak += 1
+                } else if date < today {
+                    break
+                }
+            }
+
+            guard let previousDate = calendar.date(byAdding: .day, value: -1, to: date) else {
+                break
+            }
+            date = previousDate
+        }
+
+        return streak
     }
     
     private func openEditScreen(with dayItem: DayItem) {
@@ -1056,40 +1107,44 @@ class DayViewController: UIViewController {
         reloadVisibleCategories()
     }
 
-    private func showPostponeOptions(for dayItem: DayItem) {
+    private func postponeMenu(for dayItem: DayItem) -> UIMenuElement {
         let sourceDate = Calendar.current.startOfDay(for: datePicker.date)
+        let title = NSLocalizedString("postpone.title", comment: "Postpone dayItem title")
+        let image = UIImage(systemName: "calendar.badge.clock")
+
         guard !isDayItemCompleted(dayItem, on: sourceDate) else {
-            return
+            return UIAction(title: title, image: image, attributes: .disabled) { _ in }
         }
 
-        let alert = UIAlertController(
-            title: NSLocalizedString("postpone.title", comment: "Postpone dayItem title"),
-            message: nil,
-            preferredStyle: .actionSheet
-        )
-
-        (1...7).forEach { dayOffset in
-            guard let targetDate = Calendar.current.date(byAdding: .day, value: dayOffset, to: sourceDate) else {
-                return
-            }
-
-            let title = postponeActionDateFormatter.string(from: targetDate)
-            let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
+        let dateActions = availablePostponementDates(excluding: sourceDate).map { targetDate in
+            UIAction(title: postponeActionTitle(for: targetDate)) { [weak self] _ in
                 self?.postponeDayItem(dayItem, from: sourceDate, to: targetDate)
             }
-            alert.addAction(action)
         }
 
-        alert.addAction(UIAlertAction(title: NSLocalizedString("cancel", comment: "Cancel action"), style: .cancel))
-        alert.popoverPresentationController?.sourceView = view
-        alert.popoverPresentationController?.sourceRect = CGRect(
-            x: view.bounds.midX,
-            y: view.bounds.midY,
-            width: 1,
-            height: 1
-        )
+        return UIMenu(title: title, image: image, children: dateActions)
+    }
 
-        present(alert, animated: true)
+    private func availablePostponementDates(excluding sourceDate: Date) -> [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let normalizedSourceDate = calendar.startOfDay(for: sourceDate)
+
+        return (0..<7)
+            .compactMap { calendar.date(byAdding: .day, value: $0, to: today) }
+            .filter { !calendar.isDate($0, inSameDayAs: normalizedSourceDate) }
+    }
+
+    private func postponeActionTitle(for date: Date) -> String {
+        let formattedDate = postponeActionDateFormatter.string(from: date)
+        guard Calendar.current.isDateInToday(date) else {
+            return formattedDate
+        }
+
+        return String(
+            format: NSLocalizedString("postpone.today", comment: "Today postpone option"),
+            formattedDate
+        )
     }
 
     private func postponeDayItem(_ dayItem: DayItem, from sourceDate: Date, to targetDate: Date) {
@@ -1097,16 +1152,13 @@ class DayViewController: UIViewController {
         postponements[postponementKey(for: dayItem.id, date: sourceDate)] = dateKey(for: targetDate)
         UserDefaults.standard.set(postponements, forKey: postponedDayItemsKey)
 
-        if dayItem.isHabit {
-            ReminderNotificationService.shared.removeReminder(for: dayItem.id, on: sourceDate)
-            ReminderNotificationService.shared.scheduleReminder(
-                for: dayItem,
-                completedRecords: completedDayItems
-            )
-        } else {
-            ReminderNotificationService.shared.removeReminder(for: dayItem.id)
-        }
+        ReminderNotificationService.shared.removeReminder(for: dayItem.id, on: sourceDate)
+        ReminderNotificationService.shared.scheduleReminder(
+            for: dayItem,
+            completedRecords: completedDayItems
+        )
 
+        scheduleInactivityReminders()
         reloadVisibleCategories()
         updateTodayWidgetSnapshot()
     }
@@ -1209,14 +1261,7 @@ extension DayViewController: UICollectionViewDelegate {
                 self?.archiveDayItem(dayItem)
             }
 
-            let isCompletedOnSelectedDate = self.isDayItemCompleted(dayItem, on: self.datePicker.date)
-            let postponeAttributes: UIMenuElement.Attributes = isCompletedOnSelectedDate ? .disabled : []
-            let postponeAction = UIAction(
-                title: NSLocalizedString("postponeDayItem", comment: "Postpone dayItem action"),
-                attributes: postponeAttributes
-            ) { [weak self] _ in
-                self?.showPostponeOptions(for: dayItem)
-            }
+            let postponeMenu = self.postponeMenu(for: dayItem)
 
             let isPinned = self.pinnedDayItems.contains { $0.id == dayItem.id }
             let pinTitle = isPinned
@@ -1228,7 +1273,7 @@ extension DayViewController: UICollectionViewDelegate {
 
             let actions: [UIMenuElement] = dayItem.isStopList
                 ? [pinAction, editAction, archiveAction, deleteAction]
-                : [pinAction, postponeAction, editAction, archiveAction, deleteAction]
+                : [pinAction, postponeMenu, editAction, archiveAction, deleteAction]
             return UIMenu(title: "", children: actions)
         }
     }
@@ -1275,7 +1320,7 @@ extension DayViewController: UICollectionViewDataSource {
         let isCompletedToday = isDayItemCompletedToday(id: dayItem.id)
         let displayDays = dayItem.isStopList
             ? stopListCleanDays(for: dayItem, on: datePicker.date)
-            : completedDayItems.filter { $0.dayItemID == dayItem.id}.count
+            : habitStreak(for: dayItem, through: datePicker.date)
         let isPinned = pinnedDayItems.contains { $0.id == dayItem.id }
         cell.configureCell(dayItem: dayItem, isCompletedToday: isCompletedToday, displayDays: displayDays, indexPath: indexPath, isPinned: isPinned)
         return cell
@@ -1342,6 +1387,7 @@ extension DayViewController: DayItemCellDelegate {
         do {
             try dayItemRecordStore.add(dayItemRecord: dayItemRecord)
             completedDayItems.append(dayItemRecord)
+            scheduleInactivityReminders()
             LadomiWatchSyncService.shared.publishTodayPlans()
             if let dayItem = dayItemStore.dayItem(with: id) {
                 if dayItem.isStopList {
@@ -1379,6 +1425,7 @@ extension DayViewController: DayItemCellDelegate {
             }
             return shouldRemove
         }
+        scheduleInactivityReminders()
 
         if let dayItem = dayItemStore.dayItem(with: id) {
             LadomiWatchSyncService.shared.publishTodayPlans()

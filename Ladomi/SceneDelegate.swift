@@ -21,6 +21,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneDidBecomeActive(_ scene: UIScene) {
         LadomiWatchSyncService.shared.publishTodayPlans()
+        ReminderNotificationService.shared.scheduleInactivityReminders(
+            for: DayItemStore().fetchDayItems().filter { !$0.isArchived && !$0.isStopList },
+            completedRecords: DayItemRecordStore().fetch()
+        )
     }
     
     private func isFirstLaunch() -> Bool {

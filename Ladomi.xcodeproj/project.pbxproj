@@ -38,6 +38,9 @@
 		CE5D27CC2D9AEBF400257869 /* Weekday.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5D27CB2D9AEBF400257869 /* Weekday.swift */; };
 		CE5D27D22D9AF4BC00257869 /* CategoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5D27D12D9AF4BC00257869 /* CategoryViewController.swift */; };
 		CE6A14802DDD6394001D93C6 /* AnalyticsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6A147F2DDD6394001D93C6 /* AnalyticsService.swift */; };
+		CE7000012E90000000000001 /* HealthSleepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7000022E90000000000002 /* HealthSleepService.swift */; };
+		CE7000032E90000000000003 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE7000042E90000000000004 /* HealthKit.framework */; };
+		CE7000052E90000000000005 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE7000062E90000000000006 /* InfoPlist.strings */; };
 		CE8915732DDB775B00861170 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8915722DDB775B00861170 /* Colors.swift */; };
 		CE8915752DDC923C00861170 /* FilterType.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8915742DDC923C00861170 /* FilterType.swift */; };
 		CE8915772DDCA60200861170 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8915762DDCA60200861170 /* Extensions.swift */; };
@@ -142,6 +145,10 @@
 		CE5D27CB2D9AEBF400257869 /* Weekday.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Weekday.swift; sourceTree = "<group>"; };
 		CE5D27D12D9AF4BC00257869 /* CategoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryViewController.swift; sourceTree = "<group>"; };
 		CE6A147F2DDD6394001D93C6 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
+		CE7000022E90000000000002 /* HealthSleepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthSleepService.swift; sourceTree = "<group>"; };
+		CE7000042E90000000000004 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		CE7000072E90000000000007 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		CE7000082E90000000000008 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		CE8915722DDB775B00861170 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
 		CE8915742DDC923C00861170 /* FilterType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterType.swift; sourceTree = "<group>"; };
 		CE8915762DDCA60200861170 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -195,6 +202,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE7000032E90000000000003 /* HealthKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -206,6 +214,7 @@
 			children = (
 				CE2347932DA3F13700847108 /* DataManager.swift */,
 				CE6A147F2DDD6394001D93C6 /* AnalyticsService.swift */,
+				CE7000022E90000000000002 /* HealthSleepService.swift */,
 				CE0000022E54000000000002 /* ReminderNotificationService.swift */,
 				CE1000072E58000000000007 /* LadomiWidgetShared.swift */,
 				CE1000082E58000000000008 /* LadomiWidgetSnapshotService.swift */,
@@ -404,6 +413,7 @@
 			isa = PBXGroup;
 			children = (
 				CEE54E762DD4C95A008D8780 /* Localizable.strings */,
+				CE7000062E90000000000006 /* InfoPlist.strings */,
 				CE8915722DDB775B00861170 /* Colors.swift */,
 				CE8915762DDCA60200861170 /* Extensions.swift */,
 			);
@@ -542,6 +552,9 @@
 							com.apple.ApplicationGroups.iOS = {
 								enabled = 1;
 							};
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
 						};
 					};
 				};
@@ -593,6 +606,7 @@
 			files = (
 				CE9614522D8C6F9A00AC062C /* Assets.xcassets in Resources */,
 				CEE54E782DD4C95A008D8780 /* Localizable.strings in Resources */,
+				CE7000052E90000000000005 /* InfoPlist.strings in Resources */,
 				CE9614552D8C6F9A00AC062C /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -644,6 +658,7 @@
 				CEA3306E2DB3C5B100BAA309 /* CoreDataManager.swift in Sources */,
 				CE9614622D8D9B1A00AC062C /* TabBarController.swift in Sources */,
 				CE6A14802DDD6394001D93C6 /* AnalyticsService.swift in Sources */,
+				CE7000012E90000000000001 /* HealthSleepService.swift in Sources */,
 				CE0000032E54000000000003 /* ReminderNotificationService.swift in Sources */,
 				CE9614492D8C6F9800AC062C /* AppDelegate.swift in Sources */,
 				CE5D27C22D9A841C00257869 /* NewHabitOrEventViewController.swift in Sources */,
@@ -704,6 +719,15 @@
 				CEE54E7A2DD4D87A008D8780 /* ru */,
 			);
 			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		CE7000062E90000000000006 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CE7000072E90000000000007 /* en */,
+				CE7000082E90000000000008 /* ru */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
