@@ -2,6 +2,9 @@ import Foundation
 import UIKit
 
 final class SupplementaryView: UICollectionReusableView {
+
+    private var titleLeadingConstraint: NSLayoutConstraint!
+    private var countTrailingConstraint: NSLayoutConstraint!
     
     private lazy var titleLabel: UILabel = {
         let titleLabel = UILabel()
@@ -26,12 +29,15 @@ final class SupplementaryView: UICollectionReusableView {
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
         
+        titleLeadingConstraint = titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20)
+        countTrailingConstraint = countLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20)
+
         NSLayoutConstraint.activate([
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+            titleLeadingConstraint,
 
             countLabel.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            countLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+            countTrailingConstraint,
             countLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12)
         ])
     }
@@ -40,8 +46,10 @@ final class SupplementaryView: UICollectionReusableView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configure(text: String, count: Int) {
+    func configure(text: String, count: Int, horizontalInset: CGFloat = 20) {
         titleLabel.text = text
         countLabel.text = "\(count)"
+        titleLeadingConstraint.constant = horizontalInset
+        countTrailingConstraint.constant = -horizontalInset
     }
 }

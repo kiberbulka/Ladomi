@@ -509,12 +509,10 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
 
             // Buttons
             createButton.heightAnchor.constraint(equalToConstant: 60),
-            createButton.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width / 2 - 30),
             createButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             createButton.topAnchor.constraint(equalTo: previewCardView.bottomAnchor, constant: 16),
 
             cancelButton.heightAnchor.constraint(equalToConstant: 60),
-            cancelButton.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width / 2 - 30),
             cancelButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             cancelButton.topAnchor.constraint(equalTo: previewCardView.bottomAnchor, constant: 16),
 
@@ -523,6 +521,19 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             dayItemNameTF.widthAnchor.constraint(equalTo: contentView.widthAnchor, constant: -40)
 
         ])
+
+        if traitCollection.userInterfaceIdiom == .pad {
+            NSLayoutConstraint.activate([
+                cancelButton.trailingAnchor.constraint(equalTo: createButton.leadingAnchor, constant: -8),
+                cancelButton.widthAnchor.constraint(equalTo: createButton.widthAnchor)
+            ])
+        } else {
+            let phoneButtonWidth = UIScreen.main.bounds.width / 2 - 30
+            NSLayoutConstraint.activate([
+                createButton.widthAnchor.constraint(equalToConstant: phoneButtonWidth),
+                cancelButton.widthAnchor.constraint(equalToConstant: phoneButtonWidth)
+            ])
+        }
         updatePreviewCard()
     }
 

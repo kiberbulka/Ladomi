@@ -18,6 +18,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         window?.makeKeyAndVisible()
     }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        LadomiWatchSyncService.shared.publishTodayPlans()
+        ReminderNotificationService.shared.scheduleInactivityReminders(
+            for: DayItemStore().fetchDayItems().filter { !$0.isArchived && !$0.isStopList },
+            completedRecords: DayItemRecordStore().fetch()
+        )
+    }
     
     private func isFirstLaunch() -> Bool {
         return !UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -53,4 +61,3 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
     }
 }
-

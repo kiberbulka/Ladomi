@@ -10,12 +10,14 @@ final class StatisticViewController: UIViewController {
 
     private let statisticsService = StatisticsService()
     private let dayItemRecordStore = DayItemRecordStore()
+    private let healthSleepService = HealthSleepService.shared
     private let accentColor = UIColor(red: 0.95, green: 0.44, blue: 0.70, alpha: 1)
     private let secondaryColor = UIColor(red: 0.98, green: 0.75, blue: 0.18, alpha: 1)
     private let blueAccentColor = UIColor(red: 0.12, green: 0.58, blue: 0.95, alpha: 1)
 
     private var analyticsData: AnalyticsData?
     private var statisticsItems: [StatisticsItem] = []
+    private var isRefreshingSleep = false
 
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
@@ -28,6 +30,7 @@ final class StatisticViewController: UIViewController {
     private lazy var placeholderImage: UIImageView = {
         let image = UIImageView()
         image.image = .statPlaceholder
+        image.contentMode = .scaleAspectFit
         return image
     }()
 
@@ -36,26 +39,43 @@ final class StatisticViewController: UIViewController {
         label.text = NSLocalizedString("statisticPlaceholder", comment: "")
         label.font = .ladomiMedium(12)
         label.textColor = .ypBlack
+        label.textAlignment = .center
+        label.numberOfLines = 0
         return label
     }()
 
     private lazy var placeholderContainerView: UIView = {
         let view = UIView()
 
-        [placeholderImage, placeholderLabel].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview($0)
+        if traitCollection.userInterfaceIdiom == .pad {
+            let stackView = UIStackView(arrangedSubviews: [placeholderImage, placeholderLabel])
+            stackView.axis = .vertical
+            stackView.alignment = .center
+            stackView.spacing = 8
+            stackView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(stackView)
+
+            NSLayoutConstraint.activate([
+                placeholderImage.widthAnchor.constraint(equalToConstant: 80),
+                placeholderImage.heightAnchor.constraint(equalToConstant: 80),
+                placeholderLabel.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -40),
+                stackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                stackView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            ])
+        } else {
+            [placeholderImage, placeholderLabel].forEach {
+                $0.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview($0)
+            }
+
+            NSLayoutConstraint.activate([
+                view.heightAnchor.constraint(greaterThanOrEqualToConstant: 420),
+                placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                placeholderImage.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -28),
+                placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
+                placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            ])
         }
-
-        NSLayoutConstraint.activate([
-            view.heightAnchor.constraint(greaterThanOrEqualToConstant: 420),
-
-            placeholderImage.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            placeholderImage.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -28),
-
-            placeholderLabel.topAnchor.constraint(equalTo: placeholderImage.bottomAnchor, constant: 8),
-            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
 
         return view
     }()
@@ -143,31 +163,110 @@ final class StatisticViewController: UIViewController {
     private lazy var adviceCardView = makeAdviceCard()
     private lazy var adviceValueLabel = makeAdviceValueLabel()
     private lazy var adviceDetailLabel = makeAdviceDetailLabel()
-    private lazy var insightsSectionLabel = makeSectionLabel()
+    private lazy var attentionSectionLabel = makeSectionLabel(
+        text: NSLocalizedString("analytics.attention.title", comment: "Day items that need attention section title")
+    )
+    private lazy var attentionStackView = makeVerticalCardsStackView()
+    private lazy var insightsSectionLabel = makeSectionLabel(
+        text: NSLocalizedString("analytics.insights.title", comment: "Insights section title")
+    )
     private lazy var insightsStackView = makeInsightsStackView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         dayItemRecordStore.delegate = self
-        reloadStatistics()
     }
 
-    private func reloadStatistics() {
-        analyticsData = statisticsService.fetchAnalytics()
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        reloadStatistics()
+        refreshSleepDataIfNeeded()
+    }
+
+    private func reloadStatistics(resetScrollPosition: Bool = true) {
+        analyticsData = statisticsService.fetchAnalytics(
+            sleepHoursByDate: healthSleepService.cachedSleepHoursByDate,
+            sleepIntegrationEnabled: healthSleepService.isEnabled
+        )
         statisticsItems = makeStatisticsItems()
 
-        let hasData = !statisticsItems.isEmpty
-        placeholderContainerView.isHidden = hasData
-        overviewCardView.isHidden = !hasData
-        insightsSectionLabel.isHidden = !hasData
-        insightsStackView.isHidden = !hasData
+        let hasStatistics = !statisticsItems.isEmpty
+        let hasAttentionItems = !(analyticsData?.attentionItems.isEmpty ?? true)
+        placeholderContainerView.isHidden = hasStatistics || hasAttentionItems
+        overviewCardView.isHidden = !hasStatistics
+        attentionSectionLabel.isHidden = !hasAttentionItems
+        attentionStackView.isHidden = !hasAttentionItems
+        insightsSectionLabel.isHidden = !hasStatistics
+        insightsStackView.isHidden = !hasStatistics
 
-        if hasData {
+        if hasStatistics {
             configureOverview()
             configureInsightCards()
         }
-        scrollView.setContentOffset(.zero, animated: false)
+        configureAttentionCards()
+        if resetScrollPosition {
+            scrollView.setContentOffset(.zero, animated: false)
+        }
+    }
+
+    private func refreshSleepDataIfNeeded(showErrors: Bool = false) {
+        guard healthSleepService.isEnabled, !isRefreshingSleep else {
+            return
+        }
+
+        isRefreshingSleep = true
+        healthSleepService.loadRecentSleep(days: 28) { [weak self] result in
+            guard let self else {
+                return
+            }
+
+            self.isRefreshingSleep = false
+            switch result {
+            case .success:
+                self.reloadStatistics(resetScrollPosition: false)
+            case .failure(let error):
+                if showErrors {
+                    self.showSleepError(error)
+                }
+            }
+        }
+    }
+
+    @objc private func sleepInsightTapped() {
+        guard !isRefreshingSleep else {
+            return
+        }
+
+        if healthSleepService.isEnabled {
+            refreshSleepDataIfNeeded(showErrors: true)
+            return
+        }
+
+        isRefreshingSleep = true
+        healthSleepService.requestAccess { [weak self] result in
+            guard let self else {
+                return
+            }
+
+            self.isRefreshingSleep = false
+            switch result {
+            case .success:
+                self.reloadStatistics(resetScrollPosition: false)
+            case .failure(let error):
+                self.showSleepError(error)
+            }
+        }
+    }
+
+    private func showSleepError(_ error: Error) {
+        let alert = UIAlertController(
+            title: NSLocalizedString("analytics.sleep.error.title", comment: "Sleep access error title"),
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: NSLocalizedString("ok", comment: "OK action"), style: .default))
+        present(alert, animated: true)
     }
 
     private func makeStatisticsItems() -> [StatisticsItem] {
@@ -189,9 +288,33 @@ final class StatisticViewController: UIViewController {
         contentStackView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(contentStackView)
 
+        let isPad = traitCollection.userInterfaceIdiom == .pad
+        if isPad {
+            placeholderContainerView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(placeholderContainerView)
+        }
+
         setupOverviewCard()
 
-        [titleLabel, placeholderContainerView, overviewCardView, insightsSectionLabel, insightsStackView].forEach {
+        let contentViews: [UIView] = isPad
+            ? [
+                titleLabel,
+                overviewCardView,
+                attentionSectionLabel,
+                attentionStackView,
+                insightsSectionLabel,
+                insightsStackView
+            ]
+            : [
+                titleLabel,
+                placeholderContainerView,
+                overviewCardView,
+                attentionSectionLabel,
+                attentionStackView,
+                insightsSectionLabel,
+                insightsStackView
+            ]
+        contentViews.forEach {
             contentStackView.addArrangedSubview($0)
         }
         contentStackView.setCustomSpacing(24, after: titleLabel)
@@ -208,6 +331,15 @@ final class StatisticViewController: UIViewController {
             contentStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
             contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32)
         ])
+
+        if isPad {
+            NSLayoutConstraint.activate([
+                placeholderContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                placeholderContainerView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+                placeholderContainerView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+                placeholderContainerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            ])
+        }
     }
 
     private func setupOverviewCard() {
@@ -285,7 +417,10 @@ final class StatisticViewController: UIViewController {
         overviewDetailLabel.text = overviewItem.detail
         progressValueLabel.text = overviewItem.value
         progressRingView.progress = progressValue(from: overviewItem.value)
-        moodChipLabel.text = moodChipText(from: secondaryItems.first)
+        let comfortItem = secondaryItems.first {
+            $0.title == NSLocalizedString("analytics.comfort.title", comment: "")
+        }
+        moodChipLabel.text = moodChipText(from: comfortItem)
 
         let analyzedDays = analyticsData?.analyzedDays ?? 0
         let moodDays = analyticsData?.moodDays ?? 0
@@ -333,7 +468,23 @@ final class StatisticViewController: UIViewController {
         insightsStackView.isHidden = visibleItems.isEmpty
 
         visibleItems.forEach { item in
-            insightsStackView.addArrangedSubview(makeInsightCard(item: item))
+            let isSleepItem = item.title == NSLocalizedString("analytics.sleep.title", comment: "")
+            let isSleepConnection = isSleepItem && !healthSleepService.isEnabled
+            let card = isSleepConnection
+                ? makeSleepConnectCard(item: item)
+                : makeInsightCard(item: item)
+            insightsStackView.addArrangedSubview(card)
+        }
+    }
+
+    private func configureAttentionCards() {
+        attentionStackView.arrangedSubviews.forEach {
+            attentionStackView.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        analyticsData?.attentionItems.forEach { item in
+            attentionStackView.addArrangedSubview(makeAttentionCard(item: item))
         }
     }
 
@@ -349,8 +500,9 @@ final class StatisticViewController: UIViewController {
     private func moodChipText(from item: StatisticsItem?) -> String {
         guard
             let item = item,
-            item.title == NSLocalizedString("analytics.mood.title", comment: ""),
-            item.value.contains(where: { !$0.isNumber && !$0.isWhitespace && $0 != "%" && $0 != "-" && $0 != "+" })
+            item.title == NSLocalizedString("analytics.comfort.title", comment: ""),
+            !item.value.isEmpty,
+            item.value != NSLocalizedString("analytics.comfort.noData.value", comment: "")
         else {
             let format = NSLocalizedString("analytics.moodChip.rate", comment: "Fallback analytics rate chip")
             return String(format: format, analyticsData?.averageCompletionRate ?? 0)
@@ -471,19 +623,210 @@ final class StatisticViewController: UIViewController {
         return label
     }
 
-    private func makeSectionLabel() -> UILabel {
+    private func makeSectionLabel(text: String) -> UILabel {
         let label = UILabel()
-        label.text = NSLocalizedString("analytics.insights.title", comment: "Insights section title")
+        label.text = text
         label.font = .ladomiBold(24)
         label.textColor = .ypBlack
         return label
     }
 
-    private func makeInsightsStackView() -> UIStackView {
+    private func makeVerticalCardsStackView() -> UIStackView {
         let stackView = UIStackView()
         stackView.axis = .vertical
         stackView.spacing = 12
         return stackView
+    }
+
+    private func makeInsightsStackView() -> UIStackView {
+        makeVerticalCardsStackView()
+    }
+
+    private func makeAttentionCard(item: DayItemAttentionItem) -> UIView {
+        let cardView = UIView()
+        cardView.backgroundColor = accentColor.withAlphaComponent(0.10)
+        cardView.layer.cornerRadius = 20
+
+        let emojiLabel = UILabel()
+        emojiLabel.text = item.emoji
+        emojiLabel.font = .ladomiMedium(24)
+        emojiLabel.textAlignment = .center
+        emojiLabel.backgroundColor = .ypWhite
+        emojiLabel.layer.cornerRadius = 22
+        emojiLabel.layer.masksToBounds = true
+
+        let nameLabel = UILabel()
+        nameLabel.text = item.name
+        nameLabel.font = .ladomiBold(17)
+        nameLabel.textColor = .ypBlack
+        nameLabel.numberOfLines = 1
+        nameLabel.adjustsFontSizeToFitWidth = true
+        nameLabel.minimumScaleFactor = 0.78
+
+        let detailLabel = UILabel()
+        detailLabel.text = attentionDetail(for: item)
+        detailLabel.font = .ladomiMedium(13)
+        detailLabel.textColor = .ypLightGray
+        detailLabel.numberOfLines = 2
+
+        let warningImageView = UIImageView(image: UIImage(systemName: "exclamationmark.circle.fill"))
+        warningImageView.tintColor = accentColor
+        warningImageView.contentMode = .scaleAspectFit
+
+        [emojiLabel, nameLabel, detailLabel, warningImageView].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            cardView.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            cardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 92),
+
+            emojiLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            emojiLabel.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),
+            emojiLabel.widthAnchor.constraint(equalToConstant: 44),
+            emojiLabel.heightAnchor.constraint(equalToConstant: 44),
+
+            warningImageView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 18),
+            warningImageView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            warningImageView.widthAnchor.constraint(equalToConstant: 20),
+            warningImageView.heightAnchor.constraint(equalToConstant: 20),
+
+            nameLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 16),
+            nameLabel.leadingAnchor.constraint(equalTo: emojiLabel.trailingAnchor, constant: 14),
+            nameLabel.trailingAnchor.constraint(equalTo: warningImageView.leadingAnchor, constant: -10),
+
+            detailLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
+            detailLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
+            detailLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            detailLabel.bottomAnchor.constraint(lessThanOrEqualTo: cardView.bottomAnchor, constant: -16)
+        ])
+
+        return cardView
+    }
+
+    private func attentionDetail(for item: DayItemAttentionItem) -> String {
+        let count = item.missedDays
+        let remainder10 = count % 10
+        let remainder100 = count % 100
+        let key: String
+        let keyPrefix: String
+
+        switch item.kind {
+        case .habit:
+            keyPrefix = "analytics.attention.habit.detail"
+        case .event:
+            keyPrefix = "analytics.attention.event.detail"
+        }
+
+        if remainder10 == 1 && remainder100 != 11 {
+            key = "\(keyPrefix).one"
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            key = "\(keyPrefix).few"
+        } else {
+            key = "\(keyPrefix).many"
+        }
+
+        return String(format: NSLocalizedString(key, comment: "Inactive day item detail"), count)
+    }
+
+    private func makeSleepConnectCard(item: StatisticsItem) -> UIView {
+        let cardView = UIView()
+        let sleepColor = UIColor(red: 0.38, green: 0.42, blue: 0.82, alpha: 1)
+        cardView.backgroundColor = UIColor(red: 0.96, green: 0.95, blue: 1.00, alpha: 1)
+        cardView.layer.cornerRadius = 22
+        cardView.layer.borderWidth = 1.5
+        cardView.layer.borderColor = sleepColor.withAlphaComponent(0.28).cgColor
+        cardView.layer.shadowColor = sleepColor.cgColor
+        cardView.layer.shadowOpacity = 0.10
+        cardView.layer.shadowRadius = 16
+        cardView.layer.shadowOffset = CGSize(width: 0, height: 8)
+        cardView.isUserInteractionEnabled = true
+        cardView.accessibilityTraits.insert(.button)
+        cardView.accessibilityLabel = NSLocalizedString("analytics.sleep.connect.button", comment: "Connect Health button")
+        cardView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(sleepInsightTapped)))
+
+        let iconView = UIView()
+        iconView.backgroundColor = sleepColor.withAlphaComponent(0.14)
+        iconView.layer.cornerRadius = 22
+
+        let iconImageView = UIImageView(image: UIImage(systemName: "moon.zzz.fill"))
+        iconImageView.tintColor = sleepColor
+        iconImageView.contentMode = .scaleAspectFit
+
+        let badgeLabel = PaddingLabel(horizontalInset: 10, verticalInset: 0)
+        badgeLabel.text = NSLocalizedString("analytics.sleep.connect.badge", comment: "Apple Health badge")
+        badgeLabel.font = .ladomiBold(11)
+        badgeLabel.textColor = sleepColor
+        badgeLabel.backgroundColor = sleepColor.withAlphaComponent(0.10)
+        badgeLabel.layer.cornerRadius = 13
+        badgeLabel.layer.masksToBounds = true
+        badgeLabel.textAlignment = .center
+
+        let titleLabel = UILabel()
+        titleLabel.text = item.title
+        titleLabel.font = .ladomiBold(19)
+        titleLabel.textColor = .ypBlack
+        titleLabel.numberOfLines = 1
+        titleLabel.adjustsFontSizeToFitWidth = true
+        titleLabel.minimumScaleFactor = 0.82
+
+        let detailLabel = UILabel()
+        detailLabel.text = item.detail
+        detailLabel.font = .ladomiMedium(13)
+        detailLabel.textColor = .ypLightGray
+        detailLabel.numberOfLines = 3
+
+        let connectButton = UIButton(type: .system)
+        connectButton.setTitle(NSLocalizedString("analytics.sleep.connect.button", comment: "Connect Health button"), for: .normal)
+        connectButton.setImage(UIImage(systemName: "arrow.right"), for: .normal)
+        connectButton.semanticContentAttribute = .forceRightToLeft
+        connectButton.tintColor = .white
+        connectButton.setTitleColor(.white, for: .normal)
+        connectButton.titleLabel?.font = .ladomiBold(15)
+        connectButton.backgroundColor = sleepColor
+        connectButton.layer.cornerRadius = 18
+        connectButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
+        connectButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: -8)
+        connectButton.addTarget(self, action: #selector(sleepInsightTapped), for: .touchUpInside)
+
+        [iconView, badgeLabel, titleLabel, detailLabel, connectButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            cardView.addSubview($0)
+        }
+        iconImageView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.addSubview(iconImageView)
+
+        NSLayoutConstraint.activate([
+            iconView.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 18),
+            iconView.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            iconView.widthAnchor.constraint(equalToConstant: 44),
+            iconView.heightAnchor.constraint(equalToConstant: 44),
+
+            iconImageView.centerXAnchor.constraint(equalTo: iconView.centerXAnchor),
+            iconImageView.centerYAnchor.constraint(equalTo: iconView.centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: 22),
+            iconImageView.heightAnchor.constraint(equalToConstant: 22),
+
+            badgeLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 18),
+            badgeLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 14),
+            badgeLabel.heightAnchor.constraint(equalToConstant: 26),
+
+            titleLabel.topAnchor.constraint(equalTo: badgeLabel.bottomAnchor, constant: 7),
+            titleLabel.leadingAnchor.constraint(equalTo: badgeLabel.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+
+            detailLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 9),
+            detailLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            detailLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+
+            connectButton.topAnchor.constraint(equalTo: detailLabel.bottomAnchor, constant: 16),
+            connectButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
+            connectButton.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            connectButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16),
+            connectButton.heightAnchor.constraint(equalToConstant: 48)
+        ])
+
+        return cardView
     }
 
     private func makeInsightCard(item: StatisticsItem) -> UIView {
@@ -503,7 +846,7 @@ final class StatisticViewController: UIViewController {
         valueLabel.text = item.value
         valueLabel.font = .ladomiBold(26)
         valueLabel.textColor = .ypBlack
-        valueLabel.numberOfLines = 1
+        valueLabel.numberOfLines = item.title == NSLocalizedString("analytics.itemType.title", comment: "") ? 2 : 1
         valueLabel.adjustsFontSizeToFitWidth = true
         valueLabel.minimumScaleFactor = 0.72
 
@@ -519,7 +862,7 @@ final class StatisticViewController: UIViewController {
         detailLabel.text = item.detail
         detailLabel.font = .ladomiMedium(13)
         detailLabel.textColor = .ypLightGray
-        detailLabel.numberOfLines = 3
+        detailLabel.numberOfLines = 0
 
         [iconView, valueLabel, titleLabel, detailLabel].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -561,6 +904,12 @@ final class StatisticViewController: UIViewController {
 
     private func iconName(for title: String) -> String {
         switch title {
+        case NSLocalizedString("analytics.sleep.title", comment: ""):
+            return "moon.zzz.fill"
+        case NSLocalizedString("analytics.comfort.title", comment: ""):
+            return "gauge.medium"
+        case NSLocalizedString("analytics.itemType.title", comment: ""):
+            return "square.stack.3d.up.fill"
         case NSLocalizedString("analytics.mood.title", comment: ""):
             return "face.smiling"
         case NSLocalizedString("analytics.load.title", comment: ""):
@@ -576,6 +925,12 @@ final class StatisticViewController: UIViewController {
 
     private func iconColor(for title: String) -> UIColor {
         switch title {
+        case NSLocalizedString("analytics.sleep.title", comment: ""):
+            return UIColor(red: 0.38, green: 0.42, blue: 0.82, alpha: 1)
+        case NSLocalizedString("analytics.comfort.title", comment: ""):
+            return UIColor(red: 0.22, green: 0.70, blue: 0.46, alpha: 1)
+        case NSLocalizedString("analytics.itemType.title", comment: ""):
+            return secondaryColor
         case NSLocalizedString("analytics.mood.title", comment: ""):
             return UIColor(red: 0.22, green: 0.70, blue: 0.46, alpha: 1)
         case NSLocalizedString("analytics.load.title", comment: ""):
