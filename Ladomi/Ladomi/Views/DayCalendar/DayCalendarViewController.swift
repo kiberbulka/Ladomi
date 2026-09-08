@@ -640,7 +640,6 @@ extension DayCalendarViewController: UICollectionViewDelegateFlowLayout {
 private final class DayCalendarCell: UICollectionViewCell {
     static let reuseIdentifier = "DayCalendarCell"
     private static let maxVisibleDayItemDots = 4
-    private static let maxVisibleDayItemDotsWithStopList = 2
     private var moodWidthConstraint: NSLayoutConstraint?
 
     private let dateLabel: UILabel = {
@@ -679,34 +678,6 @@ private final class DayCalendarCell: UICollectionViewCell {
         label.textColor = UIColor.ypBlack.withAlphaComponent(0.58)
         label.textAlignment = .center
         return label
-    }()
-
-    private let stopListDotView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .ypRed
-        view.layer.cornerRadius = 3
-        view.layer.masksToBounds = true
-        view.isHidden = true
-        view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            view.widthAnchor.constraint(equalToConstant: 6),
-            view.heightAnchor.constraint(equalToConstant: 6)
-        ])
-        return view
-    }()
-
-    private let stopListDividerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor.ypLightGray.withAlphaComponent(0.9)
-        view.layer.cornerRadius = 0.5
-        view.layer.masksToBounds = true
-        view.isHidden = true
-        view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            view.widthAnchor.constraint(equalToConstant: 1),
-            view.heightAnchor.constraint(equalToConstant: 8)
-        ])
-        return view
     }()
 
     override init(frame: CGRect) {
@@ -758,35 +729,29 @@ private final class DayCalendarCell: UICollectionViewCell {
         dateLabel.text = "\(dayNumber)"
         moodLabel.text = mood?.emoji
         moodWidthConstraint?.constant = mood == nil ? 0 : 18
-        configureDots(
-            with: activity.dayItemColors,
-            hasStopListSlips: activity.stopListSlipCount > 0
-        )
+        configureDots(with: activity.dayItemColors)
 
         let alpha: CGFloat = isCurrentMonth ? 1 : 0.35
         contentView.alpha = alpha
-        contentView.backgroundColor = isSelected ? UIColor.ypBlue.withAlphaComponent(0.14) : .ypGray
+        contentView.backgroundColor = backgroundColor(
+            isSelected: isSelected,
+            hasStopListSlips: activity.stopListSlipCount > 0
+        )
         contentView.layer.borderColor = borderColor(isToday: isToday, isSelected: isSelected).cgColor
         dateLabel.textColor = isSelected ? .ypBlue : .ypBlack
     }
 
-    private func configureDots(with colors: [UIColor], hasStopListSlips: Bool) {
+    private func configureDots(with colors: [UIColor]) {
         dotsStackView.arrangedSubviews.forEach { view in
             dotsStackView.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
 
-        stopListDotView.isHidden = !hasStopListSlips
-        stopListDividerView.isHidden = !(hasStopListSlips && !colors.isEmpty)
-
-        guard !colors.isEmpty || hasStopListSlips else {
+        guard !colors.isEmpty else {
             return
         }
 
-        let maxVisibleDots = hasStopListSlips
-            ? Self.maxVisibleDayItemDotsWithStopList
-            : Self.maxVisibleDayItemDots
-        let visibleColors = Array(colors.prefix(maxVisibleDots))
+        let visibleColors = Array(colors.prefix(Self.maxVisibleDayItemDots))
         visibleColors.forEach { color in
             dotsStackView.addArrangedSubview(makeDotView(color: color))
         }
@@ -795,13 +760,6 @@ private final class DayCalendarCell: UICollectionViewCell {
         if hiddenCount > 0 {
             moreCountLabel.text = "+\(hiddenCount)"
             dotsStackView.addArrangedSubview(moreCountLabel)
-        }
-
-        if hasStopListSlips {
-            if !colors.isEmpty {
-                dotsStackView.addArrangedSubview(stopListDividerView)
-            }
-            dotsStackView.addArrangedSubview(stopListDotView)
         }
     }
 
@@ -816,6 +774,14 @@ private final class DayCalendarCell: UICollectionViewCell {
             view.heightAnchor.constraint(equalToConstant: 6)
         ])
         return view
+    }
+
+    private func backgroundColor(isSelected: Bool, hasStopListSlips: Bool) -> UIColor {
+        if hasStopListSlips {
+            return UIColor.ypRed.withAlphaComponent(0.12)
+        }
+
+        return isSelected ? UIColor.ypBlue.withAlphaComponent(0.14) : .ypGray
     }
 
     private func borderColor(isToday: Bool, isSelected: Bool) -> UIColor {
