@@ -164,7 +164,7 @@
 "analytics.overview.title" = "Общий прогресс";
 "analytics.overview.detail" = "За %d дней выполнено %d из %d запланированных привычек и событий.";
 "analytics.stopList.title" = "Срывы";
-"analytics.stopList.detail" = "За период анализа отмечено %d %@. Такие дни вынесены в календаре красной точкой.";
+"analytics.stopList.detail" = "За период анализа отмечено %d %@. Такие дни выделены в календаре светло-красным цветом.";
 "analytics.stopList.slip.one" = "срыв";
 "analytics.stopList.slip.few" = "срыва";
 "analytics.stopList.slip.many" = "срывов";

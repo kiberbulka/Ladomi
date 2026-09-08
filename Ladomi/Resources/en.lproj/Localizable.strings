@@ -164,7 +164,7 @@
 "analytics.overview.title" = "Overall progress";
 "analytics.overview.detail" = "Over %d days, %d of %d planned habits and events were completed.";
 "analytics.stopList.title" = "Slips";
-"analytics.stopList.detail" = "%d %@ marked during the analysis period. These days are highlighted with a red dot in the calendar.";
+"analytics.stopList.detail" = "%d %@ marked during the analysis period. These days are highlighted with a light red background in the calendar.";
 "analytics.stopList.slip.one" = "slip";
 "analytics.stopList.slip.few" = "slips";
 "analytics.stopList.slip.many" = "slips";
