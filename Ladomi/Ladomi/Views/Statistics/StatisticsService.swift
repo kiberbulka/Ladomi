@@ -203,7 +203,6 @@ final class StatisticsService {
         let allDayItems = dayItemStore.fetchDayItems()
         let dayItems = allDayItems.filter { !$0.isStopList }
         let dayItemIDs = Set(dayItems.map { $0.id })
-        let stopListIDs = Set(allDayItems.filter { $0.isStopList }.map { $0.id })
         let allRecords = dayItemRecordStore.fetch()
         let records = allRecords.filter { dayItemIDs.contains($0.dayItemID) }
         let today = calendar.startOfDay(for: Date())
@@ -218,14 +217,6 @@ final class StatisticsService {
         let eventCompletionDates = makeEventCompletionDates(dayItems: dayItems, records: records)
         let dayItemStartDates = makeDayItemStartDates(dayItems: dayItems, records: records)
         let moodsByDate = fetchMoodsByDate()
-        let stopListSlipCount = allRecords.filter { record in
-            guard stopListIDs.contains(record.dayItemID) else {
-                return false
-            }
-
-            let recordDate = calendar.startOfDay(for: record.date)
-            return recordDate >= periodStart && recordDate <= today
-        }.count
 
         let metrics = periodDates.map { date in
             let habitPlannedIDs = analyticsHabitIDs(
@@ -280,7 +271,6 @@ final class StatisticsService {
             insights: makeInsights(
                 metrics: plannedMetrics,
                 moodMetrics: moodMetrics,
-                stopListSlipCount: stopListSlipCount,
                 sleepIntegrationEnabled: sleepIntegrationEnabled,
                 referenceDate: today
             )
@@ -564,7 +554,6 @@ final class StatisticsService {
     private func makeInsights(
         metrics: [DayMetric],
         moodMetrics: [DayMetric],
-        stopListSlipCount: Int,
         sleepIntegrationEnabled: Bool,
         referenceDate: Date
     ) -> [AnalyticsInsight] {
@@ -575,10 +564,6 @@ final class StatisticsService {
         var insights: [AnalyticsInsight] = [
             makeOverviewInsight(metrics: metrics)
         ]
-
-        if let stopListInsight = makeStopListInsight(slipCount: stopListSlipCount) {
-            insights.append(stopListInsight)
-        }
 
         let comfortCandidate = makeComfortLoadCandidate(
             metrics: moodMetrics,
@@ -635,20 +620,6 @@ final class StatisticsService {
             title: NSLocalizedString("analytics.overview.title", comment: "Analytics overview title"),
             value: "\(averageRate)%",
             detail: String(format: format, metrics.count, completedTotal, plannedTotal)
-        )
-    }
-
-    private func makeStopListInsight(slipCount: Int) -> AnalyticsInsight? {
-        guard slipCount > 0 else {
-            return nil
-        }
-
-        let slipWord = localizedSlipWord(for: slipCount)
-        let format = NSLocalizedString("analytics.stopList.detail", comment: "Stop-list slips analytics detail")
-        return AnalyticsInsight(
-            title: NSLocalizedString("analytics.stopList.title", comment: "Stop-list slips analytics title"),
-            value: "\(slipCount)",
-            detail: String(format: format, slipCount, slipWord)
         )
     }
 
@@ -720,14 +691,14 @@ final class StatisticsService {
         if hasCompletionDrop {
             detail = String(
                 format: NSLocalizedString(detailKey, comment: "Comfortable load detail"),
-                candidate.mood.localizedName,
+                candidate.mood.emoji,
                 percentage(candidate.comfortableRate),
                 percentage(candidate.overloadedRate)
             )
         } else {
             detail = String(
                 format: NSLocalizedString(detailKey, comment: "Comfortable load detail"),
-                candidate.mood.localizedName,
+                candidate.mood.emoji,
                 candidate.comfortableLimit,
                 percentage(candidate.comfortableRate),
                 percentage(candidate.overloadedRate)
@@ -1008,18 +979,6 @@ final class StatisticsService {
 
     private func percentage(_ value: Double) -> Int {
         Int(round(value * 100))
-    }
-
-    private func localizedSlipWord(for count: Int) -> String {
-        let remainder10 = count % 10
-        let remainder100 = count % 100
-        if remainder10 == 1 && remainder100 != 11 {
-            return NSLocalizedString("analytics.stopList.slip.one", comment: "One stop-list slip")
-        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
-            return NSLocalizedString("analytics.stopList.slip.few", comment: "Few stop-list slips")
-        } else {
-            return NSLocalizedString("analytics.stopList.slip.many", comment: "Many stop-list slips")
-        }
     }
 
     private func localizedItemWord(for count: Int) -> String {

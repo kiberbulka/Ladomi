@@ -181,11 +181,6 @@
 "analytics.metric.moodSuffix" = "с настроением";
 "analytics.overview.title" = "Общий прогресс";
 "analytics.overview.detail" = "За %d дней выполнено %d из %d запланированных привычек и событий.";
-"analytics.stopList.title" = "Отметки стоп-листа";
-"analytics.stopList.detail" = "За период анализа: %d %@. Эти дни отмечены в календаре красной точкой.";
-"analytics.stopList.slip.one" = "отметка";
-"analytics.stopList.slip.few" = "отметки";
-"analytics.stopList.slip.many" = "отметок";
 "analytics.mood.title" = "Настроение влияет";
 "analytics.mood.detail" = "В дни с настроением %@ выполнение держится около %d%%.";
 "analytics.mood.detailWithWorst" = "Лучше всего идут дни с %@: %d%%. С %@ выполнение ниже: %d%%.";

@@ -127,9 +127,7 @@ final class StatisticViewController: UIViewController {
         let label = UILabel()
         label.font = .ladomiBold(24)
         label.textColor = .ypBlack
-        label.numberOfLines = 1
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.78
+        label.numberOfLines = 0
         return label
     }()
 
@@ -137,20 +135,19 @@ final class StatisticViewController: UIViewController {
         let label = UILabel()
         label.font = .ladomiMedium(14)
         label.textColor = .ypLightGray
-        label.numberOfLines = 3
+        label.numberOfLines = 0
         return label
     }()
 
     private lazy var moodChipLabel: UILabel = {
-        let label = PaddingLabel(horizontalInset: 14, verticalInset: 0)
+        let label = PaddingLabel(horizontalInset: 14, verticalInset: 8)
         label.backgroundColor = UIColor(red: 0.90, green: 0.96, blue: 0.89, alpha: 1)
         label.textColor = UIColor(red: 0.12, green: 0.48, blue: 0.25, alpha: 1)
         label.font = .ladomiBold(14)
         label.textAlignment = .center
         label.layer.cornerRadius = 18
         label.layer.masksToBounds = true
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.78
+        label.numberOfLines = 0
         return label
     }()
 
@@ -366,14 +363,13 @@ final class StatisticViewController: UIViewController {
 
             overviewTitleLabel.topAnchor.constraint(equalTo: overviewCardView.topAnchor, constant: 24),
             overviewTitleLabel.leadingAnchor.constraint(equalTo: overviewCardView.leadingAnchor, constant: 20),
-            overviewTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: moodChipLabel.leadingAnchor, constant: -12),
+            overviewTitleLabel.trailingAnchor.constraint(equalTo: overviewCardView.trailingAnchor, constant: -20),
 
-            moodChipLabel.centerYAnchor.constraint(equalTo: overviewTitleLabel.centerYAnchor),
-            moodChipLabel.trailingAnchor.constraint(equalTo: overviewCardView.trailingAnchor, constant: -20),
-            moodChipLabel.heightAnchor.constraint(equalToConstant: 36),
-            moodChipLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 124),
+            moodChipLabel.topAnchor.constraint(equalTo: overviewTitleLabel.bottomAnchor, constant: 12),
+            moodChipLabel.leadingAnchor.constraint(equalTo: overviewTitleLabel.leadingAnchor),
+            moodChipLabel.trailingAnchor.constraint(lessThanOrEqualTo: overviewTitleLabel.trailingAnchor),
 
-            progressRingView.topAnchor.constraint(equalTo: overviewTitleLabel.bottomAnchor, constant: 24),
+            progressRingView.topAnchor.constraint(equalTo: moodChipLabel.bottomAnchor, constant: 24),
             progressRingView.leadingAnchor.constraint(equalTo: overviewTitleLabel.leadingAnchor),
             progressRingView.widthAnchor.constraint(equalToConstant: 106),
             progressRingView.heightAnchor.constraint(equalToConstant: 106),
@@ -385,23 +381,39 @@ final class StatisticViewController: UIViewController {
 
             firstMetricCardView.topAnchor.constraint(equalTo: progressRingView.topAnchor),
             firstMetricCardView.leadingAnchor.constraint(equalTo: progressRingView.trailingAnchor, constant: 14),
-            firstMetricCardView.trailingAnchor.constraint(equalTo: moodChipLabel.trailingAnchor),
-            firstMetricCardView.heightAnchor.constraint(equalToConstant: 48),
+            firstMetricCardView.trailingAnchor.constraint(equalTo: overviewTitleLabel.trailingAnchor),
+            firstMetricCardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
 
             secondMetricCardView.topAnchor.constraint(equalTo: firstMetricCardView.bottomAnchor, constant: 10),
             secondMetricCardView.leadingAnchor.constraint(equalTo: firstMetricCardView.leadingAnchor),
             secondMetricCardView.trailingAnchor.constraint(equalTo: firstMetricCardView.trailingAnchor),
-            secondMetricCardView.heightAnchor.constraint(equalToConstant: 48),
+            secondMetricCardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
 
-            overviewDetailLabel.topAnchor.constraint(equalTo: progressRingView.bottomAnchor, constant: 18),
             overviewDetailLabel.leadingAnchor.constraint(equalTo: overviewTitleLabel.leadingAnchor),
-            overviewDetailLabel.trailingAnchor.constraint(equalTo: moodChipLabel.trailingAnchor),
+            overviewDetailLabel.trailingAnchor.constraint(equalTo: overviewTitleLabel.trailingAnchor),
 
             adviceCardView.topAnchor.constraint(equalTo: overviewDetailLabel.bottomAnchor, constant: 18),
             adviceCardView.leadingAnchor.constraint(equalTo: overviewTitleLabel.leadingAnchor),
-            adviceCardView.trailingAnchor.constraint(equalTo: moodChipLabel.trailingAnchor),
+            adviceCardView.trailingAnchor.constraint(equalTo: overviewTitleLabel.trailingAnchor),
             adviceCardView.bottomAnchor.constraint(equalTo: overviewCardView.bottomAnchor, constant: -20),
             adviceCardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 104)
+        ])
+
+        let preferredDetailTop = overviewDetailLabel.topAnchor.constraint(
+            equalTo: progressRingView.bottomAnchor,
+            constant: 18
+        )
+        preferredDetailTop.priority = .defaultHigh
+        NSLayoutConstraint.activate([
+            preferredDetailTop,
+            overviewDetailLabel.topAnchor.constraint(
+                greaterThanOrEqualTo: progressRingView.bottomAnchor,
+                constant: 18
+            ),
+            overviewDetailLabel.topAnchor.constraint(
+                greaterThanOrEqualTo: secondMetricCardView.bottomAnchor,
+                constant: 18
+            )
         ])
     }
 
@@ -540,7 +552,9 @@ final class StatisticViewController: UIViewController {
 
             titleLabel.leadingAnchor.constraint(equalTo: valueLabel.trailingAnchor, constant: 4),
             titleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -12),
-            titleLabel.centerYAnchor.constraint(equalTo: cardView.centerYAnchor)
+            titleLabel.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),
+            titleLabel.topAnchor.constraint(greaterThanOrEqualTo: cardView.topAnchor, constant: 8),
+            titleLabel.bottomAnchor.constraint(lessThanOrEqualTo: cardView.bottomAnchor, constant: -8)
         ])
     }
 
@@ -557,9 +571,7 @@ final class StatisticViewController: UIViewController {
         let label = UILabel()
         label.font = .ladomiMedium(12)
         label.textColor = .ypLightGray
-        label.numberOfLines = 1
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.72
+        label.numberOfLines = 0
         return label
     }
 
@@ -581,6 +593,7 @@ final class StatisticViewController: UIViewController {
         titleLabel.text = NSLocalizedString("analytics.advice.title", comment: "")
         titleLabel.font = .ladomiBold(22)
         titleLabel.textColor = .ypWhite
+        titleLabel.numberOfLines = 0
 
         [iconLabel, titleLabel, adviceValueLabel, adviceDetailLabel].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -611,7 +624,7 @@ final class StatisticViewController: UIViewController {
         let label = UILabel()
         label.font = .ladomiBold(16)
         label.textColor = .ypWhite
-        label.numberOfLines = 1
+        label.numberOfLines = 0
         return label
     }
 
@@ -619,7 +632,7 @@ final class StatisticViewController: UIViewController {
         let label = UILabel()
         label.font = .ladomiMedium(13)
         label.textColor = UIColor.white.withAlphaComponent(0.72)
-        label.numberOfLines = 3
+        label.numberOfLines = 0
         return label
     }
 
@@ -628,6 +641,7 @@ final class StatisticViewController: UIViewController {
         label.text = text
         label.font = .ladomiBold(24)
         label.textColor = .ypBlack
+        label.numberOfLines = 0
         return label
     }
 
@@ -659,15 +673,13 @@ final class StatisticViewController: UIViewController {
         nameLabel.text = item.name
         nameLabel.font = .ladomiBold(17)
         nameLabel.textColor = .ypBlack
-        nameLabel.numberOfLines = 1
-        nameLabel.adjustsFontSizeToFitWidth = true
-        nameLabel.minimumScaleFactor = 0.78
+        nameLabel.numberOfLines = 0
 
         let detailLabel = UILabel()
         detailLabel.text = attentionDetail(for: item)
         detailLabel.font = .ladomiMedium(13)
         detailLabel.textColor = .ypLightGray
-        detailLabel.numberOfLines = 2
+        detailLabel.numberOfLines = 0
 
         let warningImageView = UIImageView(image: UIImage(systemName: "exclamationmark.circle.fill"))
         warningImageView.tintColor = accentColor
@@ -766,15 +778,13 @@ final class StatisticViewController: UIViewController {
         titleLabel.text = item.title
         titleLabel.font = .ladomiBold(19)
         titleLabel.textColor = .ypBlack
-        titleLabel.numberOfLines = 1
-        titleLabel.adjustsFontSizeToFitWidth = true
-        titleLabel.minimumScaleFactor = 0.82
+        titleLabel.numberOfLines = 0
 
         let detailLabel = UILabel()
         detailLabel.text = item.detail
         detailLabel.font = .ladomiMedium(13)
         detailLabel.textColor = .ypLightGray
-        detailLabel.numberOfLines = 3
+        detailLabel.numberOfLines = 0
 
         let connectButton = UIButton(type: .system)
         connectButton.setTitle(NSLocalizedString("analytics.sleep.connect.button", comment: "Connect Health button"), for: .normal)
@@ -846,17 +856,13 @@ final class StatisticViewController: UIViewController {
         valueLabel.text = item.value
         valueLabel.font = .ladomiBold(26)
         valueLabel.textColor = .ypBlack
-        valueLabel.numberOfLines = item.title == NSLocalizedString("analytics.itemType.title", comment: "") ? 2 : 1
-        valueLabel.adjustsFontSizeToFitWidth = true
-        valueLabel.minimumScaleFactor = 0.72
+        valueLabel.numberOfLines = 0
 
         let titleLabel = UILabel()
         titleLabel.text = item.title
         titleLabel.font = .ladomiBold(16)
         titleLabel.textColor = .ypBlack
-        titleLabel.numberOfLines = 1
-        titleLabel.adjustsFontSizeToFitWidth = true
-        titleLabel.minimumScaleFactor = 0.78
+        titleLabel.numberOfLines = 0
 
         let detailLabel = UILabel()
         detailLabel.text = item.detail
@@ -916,8 +922,6 @@ final class StatisticViewController: UIViewController {
             return "gauge.medium"
         case NSLocalizedString("analytics.weekday.title", comment: ""):
             return "calendar"
-        case NSLocalizedString("analytics.stopList.title", comment: ""):
-            return "exclamationmark.circle.fill"
         default:
             return "chart.bar.fill"
         }
@@ -937,8 +941,6 @@ final class StatisticViewController: UIViewController {
             return secondaryColor
         case NSLocalizedString("analytics.weekday.title", comment: ""):
             return blueAccentColor
-        case NSLocalizedString("analytics.stopList.title", comment: ""):
-            return .ypRed
         default:
             return accentColor
         }

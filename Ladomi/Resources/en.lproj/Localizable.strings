@@ -181,11 +181,6 @@
 "analytics.metric.moodSuffix" = "with mood";
 "analytics.overview.title" = "Overall progress";
 "analytics.overview.detail" = "Over %d days, %d of %d planned habits and events were completed.";
-"analytics.stopList.title" = "Stop-list entries";
-"analytics.stopList.detail" = "%d %@ recorded during the analysis period. These days are highlighted with a red dot in the calendar.";
-"analytics.stopList.slip.one" = "entry";
-"analytics.stopList.slip.few" = "entries";
-"analytics.stopList.slip.many" = "entries";
 "analytics.mood.title" = "Mood matters";
 "analytics.mood.detail" = "On days with %@ mood, completion stays around %d%%.";
 "analytics.mood.detailWithWorst" = "Best days are %@ days: %d%%. With %@, completion is lower: %d%%.";
