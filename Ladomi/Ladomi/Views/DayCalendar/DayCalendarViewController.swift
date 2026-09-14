@@ -432,15 +432,17 @@ final class DayCalendarViewController: UIViewController {
 
     private func activity(for date: Date) -> DayActivity {
         let records = recordsByDate[startOfDay(for: date)] ?? []
+        let completedDayItems = Dictionary(grouping: records, by: \.dayItemID).compactMap { id, _ -> DayItem? in
+            guard let dayItem = dayItemByID[id] else { return nil }
+            return dayItem.isStopList || dayItem.isCompleted(on: date, in: records, calendar: calendar)
+                ? dayItem
+                : nil
+        }
         var habitCount = 0
         var eventCount = 0
         var stopListSlipCount = 0
 
-        records.forEach { record in
-            guard let dayItem = dayItemByID[record.dayItemID] else {
-                return
-            }
-
+        completedDayItems.forEach { dayItem in
             if dayItem.isStopList {
                 stopListSlipCount += 1
                 return
@@ -453,13 +455,7 @@ final class DayCalendarViewController: UIViewController {
             }
         }
 
-        let dayItemColors: [UIColor] = records.compactMap { record in
-            guard let dayItem = dayItemByID[record.dayItemID], !dayItem.isStopList else {
-                return nil
-            }
-
-            return dayItem.color
-        }
+        let dayItemColors = completedDayItems.filter { !$0.isStopList }.map(\.color)
 
         return DayActivity(
             habitCount: habitCount,
@@ -488,7 +484,12 @@ final class DayCalendarViewController: UIViewController {
         }
 
         let records = recordsByDate[startOfDay(for: date)] ?? []
-        let dayItems = records.compactMap { dayItemByID[$0.dayItemID] }
+        let dayItems = Dictionary(grouping: records, by: \.dayItemID).compactMap { id, _ -> DayItem? in
+            guard let dayItem = dayItemByID[id] else { return nil }
+            return dayItem.isStopList || dayItem.isCompleted(on: date, in: records, calendar: calendar)
+                ? dayItem
+                : nil
+        }
 
         guard !dayItems.isEmpty else {
             completedListStackView.addArrangedSubview(

@@ -103,7 +103,7 @@ final class DayItemCell: UICollectionViewCell {
         button.addTarget(self, action: #selector(didTapDayItemButton), for: .touchUpInside)
         return button
     }()
-    
+
     private lazy var daysCounterLabel: UILabel = {
         let label = UILabel()
         let labelText = NSLocalizedString("dayItem.day", comment: "")
@@ -111,6 +111,14 @@ final class DayItemCell: UICollectionViewCell {
         label.textColor = .white
         label.font = .ladomiMedium(15)
         return label
+    }()
+
+    private lazy var bottomTextStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [daysCounterLabel])
+        stack.axis = .vertical
+        stack.alignment = .leading
+        stack.spacing = 2
+        return stack
     }()
     
     @objc private func didTapDayItemButton() {
@@ -128,10 +136,13 @@ final class DayItemCell: UICollectionViewCell {
         dayItemCardView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(dayItemCardView)
 
-        [topCircleView, bottomCircleView, dayItemButton, daysCounterLabel, pinImage].forEach {
+        [topCircleView, bottomCircleView, dayItemButton, pinImage].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             dayItemCardView.addSubview($0)
         }
+
+        bottomTextStackView.translatesAutoresizingMaskIntoConstraints = false
+        dayItemCardView.addSubview(bottomTextStackView)
         
         dayItemCardContentStack.translatesAutoresizingMaskIntoConstraints = false
         dayItemCardView.addSubview(dayItemCardContentStack)
@@ -166,9 +177,10 @@ final class DayItemCell: UICollectionViewCell {
             dayItemButton.widthAnchor.constraint(equalToConstant: 44),
             dayItemButton.trailingAnchor.constraint(equalTo: dayItemCardView.trailingAnchor, constant: -16),
             dayItemButton.bottomAnchor.constraint(equalTo: dayItemCardView.bottomAnchor, constant: -16),
-            
-            daysCounterLabel.centerYAnchor.constraint(equalTo: dayItemButton.centerYAnchor),
-            daysCounterLabel.leadingAnchor.constraint(equalTo: dayItemCardView.leadingAnchor, constant: 16),
+
+            bottomTextStackView.centerYAnchor.constraint(equalTo: dayItemButton.centerYAnchor),
+            bottomTextStackView.leadingAnchor.constraint(equalTo: dayItemCardView.leadingAnchor, constant: 16),
+            bottomTextStackView.trailingAnchor.constraint(lessThanOrEqualTo: dayItemButton.leadingAnchor, constant: -8)
         ])
     }
     
@@ -186,7 +198,14 @@ final class DayItemCell: UICollectionViewCell {
         fitNameIntoTwoLines()
     }
     
-    func configureCell(dayItem: DayItem, isCompletedToday: Bool, displayDays: Int, indexPath: IndexPath, isPinned: Bool) {
+    func configureCell(
+        dayItem: DayItem,
+        isCompletedToday: Bool,
+        completedRepetitions: Int,
+        displayDays: Int,
+        indexPath: IndexPath,
+        isPinned: Bool
+    ) {
         self.dayItemId = dayItem.id
         self.isCompletedToday = isCompletedToday
         self.indexPath = indexPath
@@ -202,10 +221,21 @@ final class DayItemCell: UICollectionViewCell {
             daysCounterLabel.text = dayItem.isHabit ? pluralizeDays(displayDays) : nil
         }
         
-        let imageName = isCompletedToday ? "doneButton" : "plusButton"
-        if let image = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate) {
-            dayItemButton.setImage(image, for: .normal)
-            dayItemButton.tintColor = .white
+        let showsRepetitions = dayItem.isHabit && dayItem.repetitionsPerDay > 1
+        dayItemButton.setTitle(nil, for: .normal)
+
+        if showsRepetitions {
+            let progress = min(completedRepetitions, dayItem.repetitionsPerDay)
+            dayItemButton.setImage(nil, for: .normal)
+            dayItemButton.setTitle("\(progress)/\(dayItem.repetitionsPerDay)", for: .normal)
+            dayItemButton.setTitleColor(.white, for: .normal)
+            dayItemButton.titleLabel?.font = .ladomiBold(12)
+        } else {
+            let imageName = isCompletedToday ? "doneButton" : "plusButton"
+            if let image = UIImage(named: imageName)?.withRenderingMode(.alwaysTemplate) {
+                dayItemButton.setImage(image, for: .normal)
+                dayItemButton.tintColor = .white
+            }
         }
         
         pinImage.isHidden = !isPinned

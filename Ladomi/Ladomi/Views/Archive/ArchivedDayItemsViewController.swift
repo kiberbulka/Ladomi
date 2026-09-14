@@ -106,7 +106,7 @@ final class ArchivedDayItemsViewController: UIViewController {
     }
 
     private func makeArchiveItem(for dayItem: DayItem) -> ArchiveItem {
-        let completedCount = records.filter { $0.dayItemID == dayItem.id }.count
+        let completedCount = dayItem.completedDates(in: records, calendar: calendar).count
         let missedCount = missedDatesCount(for: dayItem)
         let archivedDate = dayItem.archivedDate ?? dayItem.createdDate
 
@@ -119,9 +119,7 @@ final class ArchivedDayItemsViewController: UIViewController {
     }
 
     private func missedDatesCount(for dayItem: DayItem) -> Int {
-        let completedDates = Set(records
-            .filter { $0.dayItemID == dayItem.id }
-            .map { calendar.startOfDay(for: $0.date) })
+        let completedDates = dayItem.completedDates(in: records, calendar: calendar)
         let startDate = calendar.startOfDay(for: dayItem.createdDate)
         let endDate = calendar.startOfDay(for: dayItem.archivedDate ?? Date())
 

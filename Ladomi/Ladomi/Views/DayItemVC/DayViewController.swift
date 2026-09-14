@@ -978,19 +978,15 @@ class DayViewController: UIViewController {
         )
     }
     
-    private func isDayItemCompletedToday(id:UUID) -> Bool {
-        
-        completedDayItems.contains { dayItemRecord in
-            let isSameDay = Calendar.current.isDate(dayItemRecord.date, inSameDayAs: datePicker.date)
-            return dayItemRecord.dayItemID == id && isSameDay
-        }
+    private func repetitionsCompleted(for dayItem: DayItem, on date: Date) -> Int {
+        completedDayItems.filter {
+            $0.dayItemID == dayItem.id && Calendar.current.isDate($0.date, inSameDayAs: date)
+        }.count
     }
-    
+
     private func isDayItemCompleted(_ dayItem: DayItem, on date: Date) -> Bool {
-        let calendar = Calendar.current
-        return completedDayItems.contains {
-            $0.dayItemID == dayItem.id && calendar.isDate($0.date, inSameDayAs: date)
-        }
+        let requiredRepetitions = dayItem.isHabit ? dayItem.repetitionsPerDay : 1
+        return repetitionsCompleted(for: dayItem, on: date) >= requiredRepetitions
     }
 
     private func stopListCleanDays(for dayItem: DayItem, on date: Date) -> Int {
@@ -1017,11 +1013,12 @@ class DayViewController: UIViewController {
         let selectedDay = calendar.startOfDay(for: selectedDate)
         let referenceDate = min(selectedDay, today)
         let createdDate = calendar.startOfDay(for: dayItem.createdDate)
-        let completedDates = Set(
-            completedDayItems
-                .filter { $0.dayItemID == dayItem.id }
-                .map { calendar.startOfDay(for: $0.date) }
-        )
+        let recordsByDate = Dictionary(grouping: completedDayItems.filter { $0.dayItemID == dayItem.id }) {
+            calendar.startOfDay(for: $0.date)
+        }
+        let completedDates = Set(recordsByDate.compactMap { date, records in
+            records.count >= dayItem.repetitionsPerDay ? date : nil
+        })
         let postponements = loadPostponements()
 
         var streak = 0
@@ -1228,7 +1225,10 @@ extension DayViewController: UICollectionViewDelegate {
             return nil
         }
 
-        let completedDays = completedDayItems.filter { $0.dayItemID == dayItem.id }.count
+        let completedDays = Dictionary(
+            grouping: completedDayItems.filter { $0.dayItemID == dayItem.id },
+            by: { Calendar.current.startOfDay(for: $0.date) }
+        ).values.filter { $0.count >= dayItem.repetitionsPerDay }.count
 
         let dayItemCategory = dayItemCategoryStore.loadCategories().first(where: { category in
             category.dayItems.contains(where: { $0.id == dayItem.id })
@@ -1317,12 +1317,20 @@ extension DayViewController: UICollectionViewDataSource {
         }
         let dayItem = visibleCategories[indexPath.section].dayItems[indexPath.item]
         cell.delegate = self
-        let isCompletedToday = isDayItemCompletedToday(id: dayItem.id)
+        let completedRepetitions = repetitionsCompleted(for: dayItem, on: datePicker.date)
+        let isCompletedToday = isDayItemCompleted(dayItem, on: datePicker.date)
         let displayDays = dayItem.isStopList
             ? stopListCleanDays(for: dayItem, on: datePicker.date)
             : habitStreak(for: dayItem, through: datePicker.date)
         let isPinned = pinnedDayItems.contains { $0.id == dayItem.id }
-        cell.configureCell(dayItem: dayItem, isCompletedToday: isCompletedToday, displayDays: displayDays, indexPath: indexPath, isPinned: isPinned)
+        cell.configureCell(
+            dayItem: dayItem,
+            isCompletedToday: isCompletedToday,
+            completedRepetitions: completedRepetitions,
+            displayDays: displayDays,
+            indexPath: indexPath,
+            isPinned: isPinned
+        )
         return cell
     }
     
@@ -1382,6 +1390,15 @@ extension DayViewController: DayItemCellDelegate {
         guard datePicker.date <= Date() else {
             return
         }
+
+        guard let dayItem = dayItemStore.dayItem(with: id) else {
+            return
+        }
+
+        let requiredRepetitions = dayItem.isHabit ? dayItem.repetitionsPerDay : 1
+        guard repetitionsCompleted(for: dayItem, on: datePicker.date) < requiredRepetitions else {
+            return
+        }
         
         let dayItemRecord = DayItemRecord(dayItemID: id, date: datePicker.date)
         do {
@@ -1389,16 +1406,16 @@ extension DayViewController: DayItemCellDelegate {
             completedDayItems.append(dayItemRecord)
             scheduleInactivityReminders()
             LadomiWatchSyncService.shared.publishTodayPlans()
-            if let dayItem = dayItemStore.dayItem(with: id) {
-                if dayItem.isStopList {
-                    collectionView.reloadItems(at: [indexPath])
-                    return
-                } else if dayItem.isHabit {
+            if dayItem.isStopList {
+                collectionView.reloadItems(at: [indexPath])
+                return
+            } else if dayItem.isHabit {
+                if isDayItemCompleted(dayItem, on: datePicker.date) {
                     ReminderNotificationService.shared.removeReminder(for: id, on: datePicker.date)
-                    updateTodayWidgetSnapshot()
-                } else {
-                    ReminderNotificationService.shared.removeReminder(for: id)
                 }
+                updateTodayWidgetSnapshot()
+            } else {
+                ReminderNotificationService.shared.removeReminder(for: id)
             }
             if selectedFilter == .notCompleted {
                 reloadVisibleCategories()
