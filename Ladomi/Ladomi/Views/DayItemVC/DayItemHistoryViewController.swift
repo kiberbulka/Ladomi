@@ -172,14 +172,13 @@ final class DayItemHistoryViewController: UIViewController {
     }
 
     private var historyEndDate: Date {
-        calendar.startOfDay(for: dayItem.archivedDate ?? Date())
+        calendar.startOfDay(for: Date())
     }
 
     private var missedDatesCount: Int {
         let today = calendar.startOfDay(for: Date())
         return historicalActiveDates().filter { date in
-            let shouldCountMissed = dayItem.isArchived ? date <= historyEndDate : date < today
-            return shouldCountMissed && !completedDates.contains(date)
+            date < today && !completedDates.contains(date)
         }.count
     }
 
@@ -187,7 +186,7 @@ final class DayItemHistoryViewController: UIViewController {
         let today = calendar.startOfDay(for: Date())
         var streak = 0
 
-        for date in historicalActiveDates().reversed() where dayItem.isArchived || date < today || completedDates.contains(today) {
+        for date in historicalActiveDates().reversed() where date < today || completedDates.contains(today) {
             if completedDates.contains(date) {
                 streak += 1
             } else {
@@ -204,7 +203,7 @@ final class DayItemHistoryViewController: UIViewController {
         var calendar = Calendar.current
         calendar.firstWeekday = 2
         self.calendar = calendar
-        self.displayedMonth = calendar.startOfDay(for: dayItem.archivedDate ?? Date())
+        self.displayedMonth = calendar.startOfDay(for: Date())
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -390,14 +389,6 @@ final class DayItemHistoryViewController: UIViewController {
 
         guard isDayItemActive(on: date) else {
             return .empty
-        }
-
-        if dayItem.isArchived && date > historyEndDate {
-            return .empty
-        }
-
-        if dayItem.isArchived {
-            return .missed
         }
 
         return date < calendar.startOfDay(for: Date()) ? .missed : .planned

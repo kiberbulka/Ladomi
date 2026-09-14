@@ -28,7 +28,7 @@ final class LadomiWidgetSnapshotService {
     private init() {}
 
     func saveTodaySnapshot(dayItems: [DayItem], completedRecords: [DayItemRecord], date: Date = Date()) {
-        let activeDayItems = dayItems.filter { !$0.isArchived && !$0.isStopList }
+        let activeDayItems = dayItems.filter { !$0.isStopList }
 
         let todayHabits = sortedForWidget(
             activeDayItems.filter { $0.isHabit && isDayItemActiveForWidget($0, on: date, completedRecords: completedRecords) }

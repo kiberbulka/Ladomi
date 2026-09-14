@@ -130,8 +130,6 @@ final class DayItemCategoryStore: NSObject {
                         reminderTimes: DayItemReminderTimesCoder.decode(dayItemCoreData.reminderTimes),
                         eventDate: dayItemCoreData.eventDate,
                         createdDate: dayItemCoreData.createdDate ?? Date(),
-                        archivedDate: dayItemCoreData.archivedDate,
-                        isArchived: dayItemCoreData.isArchived,
                         isStopList: dayItemCoreData.isStopList
                     )
                 }

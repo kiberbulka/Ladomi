@@ -5,12 +5,10 @@
         <relationship name="dayItems" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DayItemCoreData" inverseName="dayItemCategory" inverseEntity="DayItemCoreData"/>
     </entity>
     <entity name="DayItemCoreData" representedClassName="DayItemCoreData" syncable="YES" codeGenerationType="class">
-        <attribute name="archivedDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="color" optional="YES" attributeType="String"/>
         <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="emoji" optional="YES" attributeType="String"/>
         <attribute name="eventDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="isArchived" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isHabit" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isStopList" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>

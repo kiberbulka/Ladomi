@@ -33,7 +33,7 @@ final class ReminderNotificationService {
     private init() {}
 
     func scheduleReminder(for dayItem: DayItem, completedRecords: [DayItemRecord] = []) {
-        guard !dayItem.isArchived, !dayItem.isStopList, !dayItem.reminderTimes.isEmpty else {
+        guard !dayItem.isStopList, !dayItem.reminderTimes.isEmpty else {
             removeReminder(for: dayItem.id)
             return
         }
@@ -390,7 +390,7 @@ final class ReminderNotificationService {
         postponements: [String: String],
         date: Date
     ) -> InactivityReminderCandidate? {
-        guard !dayItem.isArchived, !dayItem.isStopList else {
+        guard !dayItem.isStopList else {
             return nil
         }
 

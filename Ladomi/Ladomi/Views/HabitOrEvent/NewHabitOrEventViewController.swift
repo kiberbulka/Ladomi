@@ -779,8 +779,6 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             reminderTimes: isStopList ? [] : selectedReminderTimes,
             eventDate: eventDate(for: today),
             createdDate: dayItemToEdit?.createdDate ?? today,
-            archivedDate: dayItemToEdit?.archivedDate,
-            isArchived: dayItemToEdit?.isArchived ?? false,
             isStopList: isStopList
         )
     }

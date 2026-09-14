@@ -59,7 +59,7 @@ final class LadomiWatchSyncService: NSObject {
     }
 
     private func isVisibleToday(_ item: DayItem, records: [DayItemRecord], today: Date) -> Bool {
-        guard !item.isArchived, !item.isStopList else { return false }
+        guard !item.isStopList else { return false }
 
         let calendar = Calendar.current
         if isPostponedFrom(item.id, on: today) {

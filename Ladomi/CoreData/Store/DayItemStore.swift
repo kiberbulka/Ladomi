@@ -87,8 +87,6 @@ final class DayItemStore: NSObject {
         dayItemCoreData.reminderTimes = DayItemReminderTimesCoder.encode(dayItem.reminderTimes)
         dayItemCoreData.eventDate = dayItem.eventDate
         dayItemCoreData.createdDate = dayItem.createdDate
-        dayItemCoreData.archivedDate = dayItem.archivedDate
-        dayItemCoreData.isArchived = dayItem.isArchived
         dayItemCoreData.isStopList = dayItem.isStopList
         
         if let colorString = dayItem.color.toHexString() {
@@ -133,8 +131,6 @@ final class DayItemStore: NSObject {
                 reminderTimes: DayItemReminderTimesCoder.decode(coreDataDayItem.reminderTimes),
                 eventDate: coreDataDayItem.eventDate,
                 createdDate: coreDataDayItem.createdDate ?? Date(),
-                archivedDate: coreDataDayItem.archivedDate,
-                isArchived: coreDataDayItem.isArchived,
                 isStopList: coreDataDayItem.isStopList
             )
         }
@@ -200,8 +196,6 @@ extension DayItemStore {
             dayItemCoreData.reminderTimes = DayItemReminderTimesCoder.encode(updated.reminderTimes)
             dayItemCoreData.eventDate = updated.eventDate
             dayItemCoreData.createdDate = updated.createdDate
-            dayItemCoreData.archivedDate = updated.archivedDate
-            dayItemCoreData.isArchived = updated.isArchived
             dayItemCoreData.isStopList = updated.isStopList
             
             if let colorString = updated.color.toHexString() {
@@ -268,49 +262,6 @@ extension DayItemStore {
         } catch {
             print("Ошибка при удалении ритма: \(error)")
         }
-    }
-
-    func setArchived(_ isArchived: Bool, dayItem: DayItem, archivedDate: Date = Date()) {
-        let request: NSFetchRequest<DayItemCoreData> = DayItemCoreData.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", dayItem.id as CVarArg)
-
-        do {
-            guard let dayItemCoreData = try context.fetch(request).first else {
-                print("Ритм для архивации не найден")
-                return
-            }
-
-            dayItemCoreData.isArchived = isArchived
-            dayItemCoreData.archivedDate = isArchived ? archivedDate : nil
-            if dayItemCoreData.createdDate == nil {
-                dayItemCoreData.createdDate = earliestRecordDate(for: dayItem.id) ?? archivedDate
-            }
-
-            if isArchived {
-                ReminderNotificationService.shared.removeReminder(for: dayItem.id)
-            }
-
-            CoreDataManager.shared.saveContext()
-            try? fetchedResultsController.performFetch()
-
-            if !isArchived, let updatedDayItem = self.dayItem(with: dayItem.id) {
-                ReminderNotificationService.shared.scheduleReminder(
-                    for: updatedDayItem,
-                    completedRecords: DayItemRecordStore().fetch()
-                )
-            }
-        } catch {
-            print("Ошибка при изменении архива ритма: \(error)")
-        }
-    }
-
-    private func earliestRecordDate(for dayItemID: UUID) -> Date? {
-        let request: NSFetchRequest<DayItemRecordCoreData> = DayItemRecordCoreData.fetchRequest()
-        request.predicate = NSPredicate(format: "id == %@", dayItemID as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
-        request.fetchLimit = 1
-
-        return try? context.fetch(request).first?.date
     }
 
 }

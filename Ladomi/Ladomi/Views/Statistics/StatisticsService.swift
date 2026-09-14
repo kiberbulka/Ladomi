@@ -141,7 +141,7 @@ final class StatisticsService {
     // MARK: - Public Methods
     
     func fetchStatistics() -> StatisticsData {
-        let dayItems = dayItemStore.fetchDayItems().filter { !$0.isArchived && !$0.isStopList }
+        let dayItems = dayItemStore.fetchDayItems().filter { !$0.isStopList }
         let dayItemIDs = Set(dayItems.map { $0.id })
         
         let records = dayItemRecordStore.fetch().filter { dayItemIDs.contains($0.dayItemID) }
@@ -276,7 +276,7 @@ final class StatisticsService {
             moodDays: moodMetrics.count,
             averageCompletionRate: averageCompletionRate,
             attentionItems: makeAttentionItems(
-                dayItems: allDayItems.filter { !$0.isArchived && !$0.isStopList },
+                dayItems: allDayItems.filter { !$0.isStopList },
                 records: allRecords,
                 postponements: postponements,
                 today: today
@@ -532,11 +532,7 @@ final class StatisticsService {
             return false
         }
 
-        guard let archivedDate = dayItem.archivedDate else {
-            return true
-        }
-
-        return startOfDay <= calendar.startOfDay(for: archivedDate)
+        return true
     }
 
     private func makeDayItemStartDates(dayItems: [DayItem], records: [DayItemRecord]) -> [UUID: Date] {

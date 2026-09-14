@@ -58,7 +58,7 @@ enum DayItemInactivityCalculator {
         through referenceDate: Date = Date(),
         calendar: Calendar = .current
     ) -> DayItemInactivityStatus? {
-        guard !dayItem.isArchived, !dayItem.isStopList else {
+        guard !dayItem.isStopList else {
             return nil
         }
 

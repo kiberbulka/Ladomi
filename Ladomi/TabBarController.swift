@@ -203,12 +203,10 @@ final class TabBarController: UITabBarController {
             }
         }
         let dayItemViewController = UINavigationController(rootViewController: dayViewController)
-        let archiveViewController = ArchivedDayItemsViewController()
         let calendarViewController = DayCalendarViewController()
         let statisticViewController = StatisticViewController()
 
         let dayItemsTitle = NSLocalizedString("day.tab.title", comment: "Day tab title")
-        let archiveTitle = NSLocalizedString("archive.title", comment: "Archive tab title")
         let calendarTitle = NSLocalizedString("calendar.title", comment: "Calendar tab title")
         let statisticsTitle = NSLocalizedString("analytics.title", comment: "Analytics tab title")
 
@@ -216,11 +214,6 @@ final class TabBarController: UITabBarController {
             title: dayItemsTitle,
             image: UIImage(named: "dayTabBarItem"),
             selectedImage: UIImage(named: "selectedDayTabBarItem")
-        )
-        archiveViewController.tabBarItem = UITabBarItem(
-            title: archiveTitle,
-            image: UIImage(systemName: "archivebox"),
-            selectedImage: UIImage(systemName: "archivebox.fill")
         )
         calendarViewController.tabBarItem = UITabBarItem(
             title: calendarTitle,
@@ -235,7 +228,6 @@ final class TabBarController: UITabBarController {
 
         let contentViewControllers: [UIViewController] = [
             dayItemViewController,
-            archiveViewController,
             calendarViewController,
             statisticViewController
         ]

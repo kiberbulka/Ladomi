@@ -23,7 +23,6 @@
 		CE10000A2E5800000000000A /* LadomiWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1000072E58000000000007 /* LadomiWidgetShared.swift */; };
 		CE10000C2E5800000000000C /* LadomiTodayWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = CE10000B2E5800000000000B /* LadomiTodayWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CE10001A2E5800000000001A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = CEE54E762DD4C95A008D8780 /* Localizable.strings */; };
-		CE1000192E59000000000019 /* ArchivedDayItemsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1000182E59000000000018 /* ArchivedDayItemsViewController.swift */; };
 		CE2000022E5C000000000002 /* DayCalendarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2000012E5C000000000001 /* DayCalendarViewController.swift */; };
 		CE23478E2D9EBC1D00847108 /* DayItemType.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE23478D2D9EBC1D00847108 /* DayItemType.swift */; };
 		CE2347942DA3F13700847108 /* DataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2347932DA3F13700847108 /* DataManager.swift */; };
@@ -130,7 +129,6 @@
 		CE1000072E58000000000007 /* LadomiWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LadomiWidgetShared.swift; sourceTree = "<group>"; };
 		CE1000082E58000000000008 /* LadomiWidgetSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LadomiWidgetSnapshotService.swift; sourceTree = "<group>"; };
 		CE10000B2E5800000000000B /* LadomiTodayWidget.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = LadomiTodayWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		CE1000182E59000000000018 /* ArchivedDayItemsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedDayItemsViewController.swift; sourceTree = "<group>"; };
 		CE2000012E5C000000000001 /* DayCalendarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCalendarViewController.swift; sourceTree = "<group>"; };
 		CE23478D2D9EBC1D00847108 /* DayItemType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayItemType.swift; sourceTree = "<group>"; };
 		CE2347932DA3F13700847108 /* DataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManager.swift; sourceTree = "<group>"; };
@@ -244,14 +242,6 @@
 				CE1000032E58000000000003 /* LadomiTodayWidget.entitlements */,
 			);
 			path = LadomiTodayWidget;
-			sourceTree = "<group>";
-		};
-		CE10001A2E5900000000001A /* Archive */ = {
-			isa = PBXGroup;
-			children = (
-				CE1000182E59000000000018 /* ArchivedDayItemsViewController.swift */,
-			);
-			path = Archive;
 			sourceTree = "<group>";
 		};
 		CE2000032E5C000000000003 /* DayCalendar */ = {
@@ -368,7 +358,6 @@
 			children = (
 				CEE54EA12DDA495D008D8780 /* FiltersVC */,
 				CEE54E982DD89FB3008D8780 /* Statistics */,
-				CE10001A2E5900000000001A /* Archive */,
 				CE2000032E5C000000000003 /* DayCalendar */,
 				CEBFFC122DC5E0E1000185E5 /* Onboarding */,
 				CE5D27D02D9AF4A800257869 /* CategoryVC */,
@@ -662,7 +651,6 @@
 				CE0000032E54000000000003 /* ReminderNotificationService.swift in Sources */,
 				CE9614492D8C6F9800AC062C /* AppDelegate.swift in Sources */,
 				CE5D27C22D9A841C00257869 /* NewHabitOrEventViewController.swift in Sources */,
-				CE1000192E59000000000019 /* ArchivedDayItemsViewController.swift in Sources */,
 				CE2000022E5C000000000002 /* DayCalendarViewController.swift in Sources */,
 				CE1000062E58000000000006 /* LadomiWidgetSnapshotService.swift in Sources */,
 				CA3000062E61000000000006 /* LadomiWatchSyncService.swift in Sources */,

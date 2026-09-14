@@ -924,8 +924,8 @@ class DayViewController: UIViewController {
     }
     
     private func reloadData(){
-        dayItems = dayItemStore.fetchDayItems().filter { !$0.isArchived }
-        categories = activeCategories(from: dayItemCategoryStore.fetchCategories())
+        dayItems = dayItemStore.fetchDayItems()
+        categories = nonEmptyCategories(from: dayItemCategoryStore.fetchCategories())
         filteredCategories = categories
         completedDayItems = dayItemRecordStore.fetch()
         refreshReminders()
@@ -964,11 +964,8 @@ class DayViewController: UIViewController {
         )
     }
 
-    private func activeCategories(from categories: [DayItemCategory]) -> [DayItemCategory] {
-        categories.compactMap { category in
-            let activeDayItems = category.dayItems.filter { !$0.isArchived }
-            return activeDayItems.isEmpty ? nil : DayItemCategory(title: category.title, dayItems: activeDayItems)
-        }
+    private func nonEmptyCategories(from categories: [DayItemCategory]) -> [DayItemCategory] {
+        categories.filter { !$0.dayItems.isEmpty }
     }
 
     private func updateTodayWidgetSnapshot() {
@@ -1074,24 +1071,13 @@ class DayViewController: UIViewController {
 
         dayItemStore.deleteDayItem(dayItemToDelete)
 
-        dayItems = dayItemStore.fetchDayItems().filter { !$0.isArchived }
-        categories = activeCategories(from: dayItemCategoryStore.fetchCategories())
+        dayItems = dayItemStore.fetchDayItems()
+        categories = nonEmptyCategories(from: dayItemCategoryStore.fetchCategories())
         filteredCategories = categories
         reloadVisibleCategories()
         collectionView.reloadData()
         showPlaceholder()
         LadomiWatchSyncService.shared.publishTodayPlans()
-    }
-
-    private func archiveDayItem(_ dayItem: DayItem) {
-        dayItemStore.setArchived(true, dayItem: dayItem)
-
-        if let pinnedIndex = pinnedDayItems.firstIndex(where: { $0.id == dayItem.id }) {
-            pinnedDayItems.remove(at: pinnedIndex)
-            savePinnedDayItems()
-        }
-
-        reloadData()
     }
 
     private func togglePinDayItem(_ dayItem: DayItem) {
@@ -1257,10 +1243,6 @@ extension DayViewController: UICollectionViewDelegate {
                 self?.showDeleteConfirmation(for: dayItem, at: indexPath)
             }
 
-            let archiveAction = UIAction(title: NSLocalizedString("archiveDayItem", comment: "Archive dayItem action")) { [weak self] _ in
-                self?.archiveDayItem(dayItem)
-            }
-
             let postponeMenu = self.postponeMenu(for: dayItem)
 
             let isPinned = self.pinnedDayItems.contains { $0.id == dayItem.id }
@@ -1272,8 +1254,8 @@ extension DayViewController: UICollectionViewDelegate {
             }
 
             let actions: [UIMenuElement] = dayItem.isStopList
-                ? [pinAction, editAction, archiveAction, deleteAction]
-                : [pinAction, postponeMenu, editAction, archiveAction, deleteAction]
+                ? [pinAction, editAction, deleteAction]
+                : [pinAction, postponeMenu, editAction, deleteAction]
             return UIMenu(title: "", children: actions)
         }
     }

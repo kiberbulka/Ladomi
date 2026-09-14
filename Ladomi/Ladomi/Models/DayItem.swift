@@ -12,8 +12,6 @@ struct DayItem {
     var reminderTime: Date? { reminderTimes.first }
     let eventDate: Date?
     let createdDate: Date
-    let archivedDate: Date?
-    let isArchived: Bool
     let isStopList: Bool
 
     init(
@@ -28,8 +26,6 @@ struct DayItem {
         reminderTimes: [Date]? = nil,
         eventDate: Date? = nil,
         createdDate: Date = Date(),
-        archivedDate: Date? = nil,
-        isArchived: Bool = false,
         isStopList: Bool = false
     ) {
         self.id = id
@@ -48,8 +44,6 @@ struct DayItem {
             : normalizedReminderTimes
         self.eventDate = eventDate
         self.createdDate = createdDate
-        self.archivedDate = archivedDate
-        self.isArchived = isArchived
         self.isStopList = isStopList
     }
 
