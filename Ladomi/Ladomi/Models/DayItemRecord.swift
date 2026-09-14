@@ -5,6 +5,40 @@ struct DayItemRecord {
     let date: Date
 }
 
+extension DayItem {
+    func completedRepetitions(
+        on date: Date,
+        in records: [DayItemRecord],
+        calendar: Calendar = .current
+    ) -> Int {
+        records.filter {
+            $0.dayItemID == id && calendar.isDate($0.date, inSameDayAs: date)
+        }.count
+    }
+
+    func isCompleted(
+        on date: Date,
+        in records: [DayItemRecord],
+        calendar: Calendar = .current
+    ) -> Bool {
+        let requiredRepetitions = isHabit ? repetitionsPerDay : 1
+        return completedRepetitions(on: date, in: records, calendar: calendar) >= requiredRepetitions
+    }
+
+    func completedDates(
+        in records: [DayItemRecord],
+        calendar: Calendar = .current
+    ) -> Set<Date> {
+        let recordsByDate = Dictionary(grouping: records.filter { $0.dayItemID == id }) {
+            calendar.startOfDay(for: $0.date)
+        }
+        let requiredRepetitions = isHabit ? repetitionsPerDay : 1
+        return Set(recordsByDate.compactMap { date, records in
+            records.count >= requiredRepetitions ? date : nil
+        })
+    }
+}
+
 enum DayItemAttentionKind {
     case habit
     case event
@@ -29,11 +63,7 @@ enum DayItemInactivityCalculator {
         }
 
         let today = calendar.startOfDay(for: referenceDate)
-        let completedDates = Set(
-            records
-                .filter { $0.dayItemID == dayItem.id }
-                .map { calendar.startOfDay(for: $0.date) }
-        )
+        let completedDates = dayItem.completedDates(in: records, calendar: calendar)
 
         if dayItem.isHabit {
             if isHabitExpected(dayItem, on: today, postponements: postponements, calendar: calendar),

@@ -168,9 +168,7 @@ final class DayItemHistoryViewController: UIViewController {
     }()
 
     private var completedDates: Set<Date> {
-        Set(records
-            .filter { $0.dayItemID == dayItem.id }
-            .map { calendar.startOfDay(for: $0.date) })
+        dayItem.completedDates(in: records, calendar: calendar)
     }
 
     private var historyEndDate: Date {

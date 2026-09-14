@@ -51,9 +51,7 @@ final class LadomiWatchSyncService: NSObject {
                     "title": item.name,
                     "emoji": item.emoji,
                     "color": item.color.toHexString() ?? "#D9D9D9",
-                    "isCompleted": records.contains {
-                        $0.dayItemID == item.id && Calendar.current.isDate($0.date, inSameDayAs: today)
-                    }
+                    "isCompleted": item.isCompleted(on: today, in: records)
                 ]
             }
 
@@ -107,15 +105,22 @@ final class LadomiWatchSyncService: NSObject {
 
     private func setCompleted(_ isCompleted: Bool, id: UUID) {
         let records = dayItemRecordStore.fetch()
-        let todayRecord = records.first {
+        guard let dayItem = dayItemStore.dayItem(with: id) else { return }
+        let todayRecords = records.filter {
             $0.dayItemID == id && Calendar.current.isDateInToday($0.date)
         }
 
         do {
-            if isCompleted, todayRecord == nil {
-                try dayItemRecordStore.add(dayItemRecord: DayItemRecord(dayItemID: id, date: Date()))
-            } else if !isCompleted, let todayRecord {
-                try dayItemRecordStore.delete(dayItemRecord: todayRecord)
+            if isCompleted {
+                let missingRepetitions = max(0, dayItem.repetitionsPerDay - todayRecords.count)
+                for _ in 0..<missingRepetitions {
+                    let record = DayItemRecord(dayItemID: id, date: Date())
+                    try dayItemRecordStore.add(dayItemRecord: record)
+                }
+            } else {
+                for record in todayRecords {
+                    try dayItemRecordStore.delete(dayItemRecord: record)
+                }
             }
 
             NotificationCenter.default.post(name: Self.recordsDidChangeNotification, object: nil)

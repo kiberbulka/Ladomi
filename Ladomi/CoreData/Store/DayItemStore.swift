@@ -84,6 +84,7 @@ final class DayItemStore: NSObject {
         dayItemCoreData.id = dayItem.id
         dayItemCoreData.emoji = dayItem.emoji
         dayItemCoreData.reminderTime = dayItem.reminderTime
+        dayItemCoreData.reminderTimes = DayItemReminderTimesCoder.encode(dayItem.reminderTimes)
         dayItemCoreData.eventDate = dayItem.eventDate
         dayItemCoreData.createdDate = dayItem.createdDate
         dayItemCoreData.archivedDate = dayItem.archivedDate
@@ -98,6 +99,7 @@ final class DayItemStore: NSObject {
         }
         
         dayItemCoreData.isHabit = dayItem.isHabit
+        dayItemCoreData.repetitionsPerDay = Int16(dayItem.repetitionsPerDay)
         
         if let scheduleString = Weekday.encodeSchedule(dayItem.schedule) {
             dayItemCoreData.schedule = scheduleString
@@ -126,7 +128,9 @@ final class DayItemStore: NSObject {
                 emoji: coreDataDayItem.emoji ?? "",
                 schedule: schedule,
                 isHabit: coreDataDayItem.isHabit,
+                repetitionsPerDay: max(1, Int(coreDataDayItem.repetitionsPerDay)),
                 reminderTime: coreDataDayItem.reminderTime,
+                reminderTimes: DayItemReminderTimesCoder.decode(coreDataDayItem.reminderTimes),
                 eventDate: coreDataDayItem.eventDate,
                 createdDate: coreDataDayItem.createdDate ?? Date(),
                 archivedDate: coreDataDayItem.archivedDate,
@@ -191,7 +195,9 @@ extension DayItemStore {
             dayItemCoreData.name = updated.name
             dayItemCoreData.emoji = updated.emoji
             dayItemCoreData.isHabit = updated.isHabit
+            dayItemCoreData.repetitionsPerDay = Int16(updated.repetitionsPerDay)
             dayItemCoreData.reminderTime = updated.reminderTime
+            dayItemCoreData.reminderTimes = DayItemReminderTimesCoder.encode(updated.reminderTimes)
             dayItemCoreData.eventDate = updated.eventDate
             dayItemCoreData.createdDate = updated.createdDate
             dayItemCoreData.archivedDate = updated.archivedDate

@@ -25,6 +25,7 @@ final class ReminderNotificationService {
     private let postponedDayItemsKey = "postponedDayItemsByDate"
     private let habitPlanningWindowDays = 60
     private let maxHabitRemindersPerDayItem = 8
+    private let maxReminderTimesPerDayItem = 8
     private let skippedReminderQueue = DispatchQueue(label: "dayItem.reminders.skipped")
     private let inactivityReminderStateQueue = DispatchQueue(label: "dayItem.reminders.inactivityState")
     private var skippedHabitReminderKeys: Set<String> = []
@@ -32,7 +33,7 @@ final class ReminderNotificationService {
     private init() {}
 
     func scheduleReminder(for dayItem: DayItem, completedRecords: [DayItemRecord] = []) {
-        guard !dayItem.isArchived, !dayItem.isStopList, dayItem.reminderTime != nil else {
+        guard !dayItem.isArchived, !dayItem.isStopList, !dayItem.reminderTimes.isEmpty else {
             removeReminder(for: dayItem.id)
             return
         }
@@ -72,7 +73,10 @@ final class ReminderNotificationService {
     func removeReminder(for dayItemID: UUID, on date: Date) {
         skipReminder(for: dayItemID, on: date)
 
-        let identifiers = [
+        let indexedIdentifiers = (0..<maxReminderTimesPerDayItem).map {
+            habitReminderIdentifier(for: dayItemID, date: date, reminderIndex: $0)
+        }
+        let identifiers = indexedIdentifiers + [
             habitReminderIdentifier(for: dayItemID, date: date),
             notificationIdentifier(for: dayItemID, suffix: "\(appWeekdayNumber(for: date))"),
             softReminderIdentifier(for: dayItemID, date: date)
@@ -178,7 +182,7 @@ final class ReminderNotificationService {
     }
 
     private func addNotificationRequests(for dayItem: DayItem, completedRecords: [DayItemRecord]) {
-        guard let reminderTime = dayItem.reminderTime else {
+        guard !dayItem.reminderTimes.isEmpty else {
             return
         }
 
@@ -188,10 +192,25 @@ final class ReminderNotificationService {
         content.sound = .default
 
         if dayItem.isHabit {
-            habitReminderDates(for: dayItem, reminderTime: reminderTime, completedRecords: completedRecords).forEach { date in
+            let reminders = dayItem.reminderTimes.enumerated().flatMap { index, reminderTime in
+                habitReminderDates(
+                    for: dayItem,
+                    reminderTime: reminderTime,
+                    completedRecords: completedRecords
+                ).map { (date: $0, index: index) }
+            }
+            .sorted { $0.date < $1.date }
+            .prefix(maxHabitRemindersPerDayItem)
+
+            reminders.forEach { reminder in
+                let date = reminder.date
                 let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents(from: date), repeats: false)
                 let request = UNNotificationRequest(
-                    identifier: habitReminderIdentifier(for: dayItem.id, date: date),
+                    identifier: habitReminderIdentifier(
+                        for: dayItem.id,
+                        date: date,
+                        reminderIndex: reminder.index
+                    ),
                     content: content,
                     trigger: trigger
                 )
@@ -201,16 +220,24 @@ final class ReminderNotificationService {
                     }
                 }
             }
-        } else if let date = eventReminderDate(for: dayItem, reminderTime: reminderTime, completedRecords: completedRecords) {
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents(from: date), repeats: false)
-            let request = UNNotificationRequest(
-                identifier: eventReminderIdentifier(for: dayItem.id, date: date),
-                content: content,
-                trigger: trigger
-            )
-            notificationCenter.add(request) { error in
-                if let error = error {
-                    print("Failed to schedule event reminder: \(error)")
+        } else {
+            dayItem.reminderTimes.enumerated().forEach { index, reminderTime in
+                if let date = eventReminderDate(
+                    for: dayItem,
+                    reminderTime: reminderTime,
+                    completedRecords: completedRecords
+                ) {
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents(from: date), repeats: false)
+                    let request = UNNotificationRequest(
+                        identifier: eventReminderIdentifier(for: dayItem.id, date: date, reminderIndex: index),
+                        content: content,
+                        trigger: trigger
+                    )
+                    notificationCenter.add(request) { error in
+                        if let error = error {
+                            print("Failed to schedule event reminder: \(error)")
+                        }
+                    }
                 }
             }
         }
@@ -229,7 +256,7 @@ final class ReminderNotificationService {
         return (0..<habitPlanningWindowDays).compactMap { dayOffset -> Date? in
             guard let date = calendar.date(byAdding: .day, value: dayOffset, to: startDate),
                   isHabit(dayItem, activeOn: date, postponements: postponements),
-                  !isDayItemCompleted(dayItem.id, on: date, completedRecords: completedRecords),
+                  !isDayItemCompleted(dayItem, on: date, completedRecords: completedRecords),
                   !isReminderSkipped(for: dayItem.id, on: date),
                   let reminderDate = reminderDate(from: reminderTime, on: date),
                   reminderDate > now else {
@@ -422,7 +449,7 @@ final class ReminderNotificationService {
         )
         var missedDays = status?.missedDays ?? 0
         var episodeStartDate = status?.firstMissedDate
-        let completedDates = Set(itemRecords.map { calendar.startOfDay(for: $0.date) })
+        let completedDates = dayItem.completedDates(in: itemRecords, calendar: calendar)
 
         if missedDays >= inactivityThreshold,
            let episodeStartDate,
@@ -557,7 +584,7 @@ final class ReminderNotificationService {
         guard dayItem.isHabit,
               let reminderTime = dayItem.reminderTime,
               isHabit(dayItem, activeOn: date, postponements: postponements),
-              !isDayItemCompleted(dayItem.id, on: date, completedRecords: completedRecords),
+              !isDayItemCompleted(dayItem, on: date, completedRecords: completedRecords),
               let regularReminderDate = reminderDate(from: reminderTime, on: date),
               let softReminderDate = softReminderDate(for: date) else {
             return false
@@ -585,10 +612,8 @@ final class ReminderNotificationService {
         )
     }
 
-    private func isDayItemCompleted(_ dayItemID: UUID, on date: Date, completedRecords: [DayItemRecord]) -> Bool {
-        completedRecords.contains {
-            $0.dayItemID == dayItemID && Calendar.current.isDate($0.date, inSameDayAs: date)
-        }
+    private func isDayItemCompleted(_ dayItem: DayItem, on date: Date, completedRecords: [DayItemRecord]) -> Bool {
+        dayItem.isCompleted(on: date, in: completedRecords)
     }
 
     private func isHabit(
@@ -633,7 +658,13 @@ final class ReminderNotificationService {
     private func notificationIdentifiers(for dayItemID: UUID) -> [String] {
         let weekdayIdentifiers = (1...7).map { notificationIdentifier(for: dayItemID, suffix: "\($0)") }
         let rollingIdentifiers = plannedDateOffsets().flatMap { date -> [String] in
-            [
+            let indexedIdentifiers = (0..<maxReminderTimesPerDayItem).flatMap { index in
+                [
+                    habitReminderIdentifier(for: dayItemID, date: date, reminderIndex: index),
+                    eventReminderIdentifier(for: dayItemID, date: date, reminderIndex: index)
+                ]
+            }
+            return indexedIdentifiers + [
                 habitReminderIdentifier(for: dayItemID, date: date),
                 eventReminderIdentifier(for: dayItemID, date: date)
             ]
@@ -655,12 +686,20 @@ final class ReminderNotificationService {
         }
     }
 
-    private func habitReminderIdentifier(for dayItemID: UUID, date: Date) -> String {
-        notificationIdentifier(for: dayItemID, suffix: "\(habitReminderPrefix)-\(dateString(from: date))")
+    private func habitReminderIdentifier(for dayItemID: UUID, date: Date, reminderIndex: Int? = nil) -> String {
+        let indexSuffix = reminderIndex.map { "-\($0)" } ?? ""
+        return notificationIdentifier(
+            for: dayItemID,
+            suffix: "\(habitReminderPrefix)-\(dateString(from: date))\(indexSuffix)"
+        )
     }
 
-    private func eventReminderIdentifier(for dayItemID: UUID, date: Date) -> String {
-        notificationIdentifier(for: dayItemID, suffix: "\(eventReminderPrefix)-\(dateString(from: date))")
+    private func eventReminderIdentifier(for dayItemID: UUID, date: Date, reminderIndex: Int? = nil) -> String {
+        let indexSuffix = reminderIndex.map { "-\($0)" } ?? ""
+        return notificationIdentifier(
+            for: dayItemID,
+            suffix: "\(eventReminderPrefix)-\(dateString(from: date))\(indexSuffix)"
+        )
     }
 
     private func softReminderIdentifier(for dayItemID: UUID, date: Date) -> String {
@@ -729,9 +768,8 @@ final class ReminderNotificationService {
         }
 
         let calendar = Calendar.current
-        let completedDateStrings = Set(completedRecords
-            .filter { $0.dayItemID == dayItem.id }
-            .map { dateString(from: calendar.startOfDay(for: $0.date)) })
+        let completedDateStrings = Set(dayItem.completedDates(in: completedRecords, calendar: calendar)
+            .map { dateString(from: $0) })
 
         skippedReminderQueue.sync {
             plannedDateOffsets().forEach { date in

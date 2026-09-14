@@ -9,6 +9,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     private enum DayItemSettingsRow: Equatable {
         case category
         case schedule
+        case repetitions
         case eventDate
         case reminder
     }
@@ -35,7 +36,9 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     private let dayItemStore = DayItemStore()
     private let dayItemRecordStore = DayItemRecordStore()
     private var selectedCategory: DayItemCategory?
-    private var selectedReminderTime: Date?
+    private var selectedReminderTimes: [Date] = []
+    private var selectedRepetitionsPerDay = 1
+    private let maximumEventReminderTimes = 8
     private var tableViewHeightConstraint: NSLayoutConstraint!
     private var characterLimitHeightConstraint: NSLayoutConstraint!
     private var typeSegmentHeightConstraint: NSLayoutConstraint!
@@ -99,7 +102,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             return []
         }
 
-        return isHabit ? [.category, .schedule, .reminder] : [.category, .eventDate, .reminder]
+        return isHabit ? [.category, .schedule, .repetitions, .reminder] : [.category, .eventDate, .reminder]
     }
 
     private var activeEmojis: [String] {
@@ -660,7 +663,7 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             let schedule = scheduleSubtitle().isEmpty
                 ? NSLocalizedString("scheduleTable.title", comment: "")
                 : scheduleSubtitle()
-            return "\(schedule) · \(reminderSubtitle())"
+            return "\(schedule) · \(repetitionsSubtitle()) · \(reminderSubtitle())"
         } else {
             return "\(eventDateSubtitle()) · \(reminderSubtitle())"
         }
@@ -678,7 +681,9 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         guard isHabit != shouldSelectHabit else { return }
 
         isHabit = shouldSelectHabit
-        if !isHabit {
+        if isHabit {
+            selectedReminderTimes = Array(selectedReminderTimes.prefix(selectedRepetitionsPerDay))
+        } else {
             selectedEventDate = normalizedEventDate(selectedEventDate)
         }
 
@@ -770,7 +775,8 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
             emoji: selectedEmoji ?? "",
             schedule: schedule,
             isHabit: isStopList ? false : isHabit,
-            reminderTime: isStopList ? nil : selectedReminderTime,
+            repetitionsPerDay: isHabit && !isStopList ? selectedRepetitionsPerDay : 1,
+            reminderTimes: isStopList ? [] : selectedReminderTimes,
             eventDate: eventDate(for: today),
             createdDate: dayItemToEdit?.createdDate ?? today,
             archivedDate: dayItemToEdit?.archivedDate,
@@ -922,11 +928,83 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
     }
 
     private func reminderSubtitle() -> String {
-        guard let selectedReminderTime = selectedReminderTime else {
+        guard !selectedReminderTimes.isEmpty else {
             return NSLocalizedString("reminder.off", comment: "Reminder is off")
         }
 
-        return reminderDateFormatter.string(from: selectedReminderTime)
+        return selectedReminderTimes
+            .map { reminderDateFormatter.string(from: $0) }
+            .joined(separator: ", ")
+    }
+
+    private func repetitionsSubtitle() -> String {
+        let count = selectedRepetitionsPerDay
+        let remainder10 = count % 10
+        let remainder100 = count % 100
+        let key: String
+
+        if remainder10 == 1 && remainder100 != 11 {
+            key = "repetitions.perDay.one"
+        } else if remainder10 >= 2 && remainder10 <= 4 && (remainder100 < 10 || remainder100 >= 20) {
+            key = "repetitions.perDay.few"
+        } else {
+            key = "repetitions.perDay.many"
+        }
+
+        return String(format: NSLocalizedString(key, comment: "Daily repetitions value"), count)
+    }
+
+    private func presentRepetitionsPicker() {
+        let picker = RepetitionsPickerViewController(selectedValue: selectedRepetitionsPerDay)
+        picker.onDone = { [weak self] value in
+            guard let self else { return }
+            self.selectedRepetitionsPerDay = value
+            self.selectedReminderTimes = Array(self.selectedReminderTimes.prefix(value))
+            self.tableView.reloadData()
+            self.updatePreviewCard()
+        }
+        picker.modalPresentationStyle = .pageSheet
+        if #available(iOS 16.0, *), let sheet = picker.sheetPresentationController {
+            sheet.detents = [
+                .custom(identifier: .init("repetitions")) { _ in 320 }
+            ]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        } else if #available(iOS 15.0, *), let sheet = picker.sheetPresentationController {
+            sheet.detents = [.medium()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(picker, animated: true)
+    }
+
+    private func presentReminderTimesPicker() {
+        let maximumTimes = isHabit && !isStopList
+            ? selectedRepetitionsPerDay
+            : maximumEventReminderTimes
+        let picker = ReminderTimesPickerViewController(
+            selectedTimes: selectedReminderTimes,
+            maximumTimes: maximumTimes
+        )
+        picker.onDone = { [weak self] times in
+            guard let self else { return }
+            self.selectedReminderTimes = times
+            self.tableView.reloadData()
+            self.updatePreviewCard()
+        }
+        picker.modalPresentationStyle = .pageSheet
+        if #available(iOS 16.0, *), let sheet = picker.sheetPresentationController {
+            sheet.detents = [
+                .custom(identifier: .init("reminderTimes")) { _ in 500 }
+            ]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        } else if #available(iOS 15.0, *), let sheet = picker.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(picker, animated: true)
     }
 
     private func eventDateSubtitle() -> String {
@@ -964,30 +1042,8 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         let cellText = NSLocalizedString("reminderTable.title", comment: "Reminder cell title")
         cell.textLabel?.text = cellText
         cell.detailTextLabel?.text = reminderSubtitle()
-        cell.accessoryType = .none
-
-        let reminderSwitch = UISwitch()
-        reminderSwitch.isOn = selectedReminderTime != nil
-        reminderSwitch.onTintColor = .ypBlue
-        reminderSwitch.addTarget(self, action: #selector(reminderSwitchDidChange(_:)), for: .valueChanged)
-
-        guard let selectedReminderTime = selectedReminderTime else {
-            cell.accessoryView = reminderSwitch
-            return
-        }
-
-        let timePicker = UIDatePicker()
-        timePicker.datePickerMode = .time
-        timePicker.preferredDatePickerStyle = .compact
-        timePicker.date = selectedReminderTime
-        timePicker.addTarget(self, action: #selector(reminderTimeDidChange(_:)), for: .valueChanged)
-
-        let stackView = UIStackView(arrangedSubviews: [timePicker, reminderSwitch])
-        stackView.axis = .horizontal
-        stackView.alignment = .center
-        stackView.spacing = 8
-        stackView.frame = CGRect(x: 0, y: 0, width: 190, height: 44)
-        cell.accessoryView = stackView
+        cell.accessoryView = nil
+        cell.accessoryType = .disclosureIndicator
     }
 
     private func configureSettingsIcon(for cell: UITableViewCell, row: DayItemSettingsRow) {
@@ -1001,6 +1057,9 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         case .schedule, .eventDate:
             imageName = "clock"
             tintColor = .colorSection7
+        case .repetitions:
+            imageName = "arrow.triangle.2.circlepath"
+            tintColor = UIColor(red: 0.54, green: 0.20, blue: 0.86, alpha: 1)
         case .reminder:
             imageName = "bell.fill"
             tintColor = .colorSection3
@@ -1009,24 +1068,6 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         let configuration = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
         cell.imageView?.image = UIImage(systemName: imageName, withConfiguration: configuration)
         cell.imageView?.tintColor = tintColor
-    }
-
-    @objc private func reminderSwitchDidChange(_ sender: UISwitch) {
-        selectedReminderTime = sender.isOn ? selectedReminderTime ?? Date() : nil
-        tableView.reloadData()
-        updateTableViewHeight()
-        updatePreviewCard()
-    }
-
-    @objc private func reminderTimeDidChange(_ sender: UIDatePicker) {
-        selectedReminderTime = sender.date
-        guard let reminderRow = settingsRows.firstIndex(of: .reminder) else {
-            return
-        }
-
-        let indexPath = IndexPath(row: reminderRow, section: 0)
-        tableView.cellForRow(at: indexPath)?.detailTextLabel?.text = reminderSubtitle()
-        updatePreviewCard()
     }
 
     private func pluralizeDays(_ count: Int) -> String {
@@ -1051,8 +1092,9 @@ final class NewHabitOrEventViewController: UIViewController, CategorySelectionDe
         selectedColor = dayItem.color
         selectedEmoji = dayItem.emoji
         selectedDays = dayItem.schedule
+        selectedRepetitionsPerDay = dayItem.repetitionsPerDay
         selectedCategory = dayItemCategoryToEdit
-        selectedReminderTime = dayItem.isStopList ? nil : dayItem.reminderTime
+        selectedReminderTimes = dayItem.isStopList ? [] : dayItem.reminderTimes
         selectedEventDate = dayItem.isHabit || dayItem.isStopList ? nil : normalizedEventDate(dayItem.eventDate)
         isHabit = dayItem.isHabit
         isStopList = dayItem.isStopList
@@ -1111,6 +1153,9 @@ extension NewHabitOrEventViewController: UITableViewDataSource {
             let cellText = NSLocalizedString("scheduleTable.title", comment: "название ячейки")
             cell.textLabel?.text = cellText
             cell.detailTextLabel?.text = scheduleSubtitle()
+        case .repetitions:
+            cell.textLabel?.text = NSLocalizedString("repetitions.title", comment: "Daily repetitions cell title")
+            cell.detailTextLabel?.text = repetitionsSubtitle()
         case .eventDate:
             let cellText = NSLocalizedString("eventScheduleTable.title", comment: "Event schedule cell title")
             cell.textLabel?.text = cellText
@@ -1140,10 +1185,12 @@ extension NewHabitOrEventViewController: UITableViewDataSource {
             scheduleVC.selectedDays = self.selectedDays
             scheduleVC.delegate = self
             present(scheduleVC, animated: true)
+        case .repetitions:
+            presentRepetitionsPicker()
         case .eventDate:
             presentEventDatePicker()
         case .reminder:
-            break
+            presentReminderTimesPicker()
         }
     }
 
@@ -1315,5 +1362,437 @@ extension NewHabitOrEventViewController: UICollectionViewDelegate, UICollectionV
         default:
             break
         }
+    }
+}
+
+private final class RepetitionsPickerViewController: UIViewController {
+    private enum Limits {
+        static let minimum = 1
+        static let maximum = 5
+    }
+    private var selectedValue: Int {
+        didSet { updateSelection() }
+    }
+
+    var onDone: ((Int) -> Void)?
+
+    private lazy var titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("repetitions.title", comment: "Daily repetitions picker title")
+        label.font = .ladomiBold(28)
+        label.textColor = .ypBlack
+        label.textAlignment = .center
+        return label
+    }()
+
+    private lazy var questionLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("repetitions.question", comment: "Daily repetitions picker question")
+        label.font = .ladomiRegular(16)
+        label.textColor = .ypLightGray
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private lazy var valueLabel: UILabel = {
+        let label = UILabel()
+        label.font = .ladomiBold(46)
+        label.textColor = .ypBlack
+        label.textAlignment = .center
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        return label
+    }()
+
+    private lazy var minusButton = makeRoundButton(symbolName: "minus", action: #selector(decreaseValue))
+    private lazy var plusButton = makeRoundButton(symbolName: "plus", action: #selector(increaseValue))
+
+    private lazy var valueStackView: UIStackView = {
+        let stack = UIStackView(arrangedSubviews: [minusButton, valueLabel, plusButton])
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.distribution = .equalCentering
+        return stack
+    }()
+
+    private lazy var hintLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("repetitions.tapHint", comment: "Habit completion hint")
+        label.font = .ladomiRegular(15)
+        label.textColor = .ypLightGray
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private lazy var doneButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.backgroundColor = .ypBlack
+        button.setTitleColor(.ypWhite, for: .normal)
+        button.setTitle(NSLocalizedString("done", comment: "Done button"), for: .normal)
+        button.titleLabel?.font = .ladomiBold(17)
+        button.layer.cornerRadius = 16
+        button.addTarget(self, action: #selector(doneButtonDidTap), for: .touchUpInside)
+        return button
+    }()
+
+    init(selectedValue: Int) {
+        self.selectedValue = min(max(selectedValue, Limits.minimum), Limits.maximum)
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .ypWhite
+        setupUI()
+        updateSelection()
+    }
+
+    private func setupUI() {
+        [titleLabel, questionLabel, valueStackView, hintLabel, doneButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 30),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            questionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            questionLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            questionLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            valueStackView.topAnchor.constraint(equalTo: questionLabel.bottomAnchor, constant: 14),
+            valueStackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            valueStackView.widthAnchor.constraint(equalToConstant: 220),
+            valueStackView.heightAnchor.constraint(equalToConstant: 64),
+            minusButton.widthAnchor.constraint(equalToConstant: 60),
+            minusButton.heightAnchor.constraint(equalToConstant: 60),
+            plusButton.widthAnchor.constraint(equalToConstant: 60),
+            plusButton.heightAnchor.constraint(equalToConstant: 60),
+
+            hintLabel.topAnchor.constraint(equalTo: valueStackView.bottomAnchor, constant: 14),
+            hintLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            hintLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            doneButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            doneButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+            doneButton.heightAnchor.constraint(equalToConstant: 60)
+        ])
+    }
+
+    private func makeRoundButton(symbolName: String, action: Selector) -> UIButton {
+        let button = UIButton(type: .system)
+        button.backgroundColor = .ypWhite
+        button.tintColor = .ypBlack
+        button.layer.cornerRadius = 30
+        button.layer.borderWidth = 1
+        button.layer.borderColor = UIColor.ypGray.cgColor
+        button.setImage(UIImage(systemName: symbolName), for: .normal)
+        button.addTarget(self, action: action, for: .touchUpInside)
+        return button
+    }
+
+    private func updateSelection() {
+        guard isViewLoaded else { return }
+        valueLabel.text = "\(selectedValue)"
+        minusButton.isEnabled = selectedValue > Limits.minimum
+        plusButton.isEnabled = selectedValue < Limits.maximum
+        minusButton.alpha = minusButton.isEnabled ? 1 : 0.35
+        plusButton.alpha = plusButton.isEnabled ? 1 : 0.35
+    }
+
+    @objc private func decreaseValue() {
+        selectedValue = max(Limits.minimum, selectedValue - 1)
+    }
+
+    @objc private func increaseValue() {
+        selectedValue = min(Limits.maximum, selectedValue + 1)
+    }
+
+    @objc private func doneButtonDidTap() {
+        onDone?(selectedValue)
+        dismiss(animated: true)
+    }
+}
+
+private final class ReminderTimesPickerViewController: UIViewController {
+    private var selectedTimes: [Date]
+    private let maximumTimes: Int
+    var onDone: (([Date]) -> Void)?
+
+    private lazy var titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("reminder.times.title", comment: "Reminder times picker title")
+        label.font = .ladomiBold(28)
+        label.textColor = .ypBlack
+        label.textAlignment = .center
+        return label
+    }()
+
+    private lazy var hintLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("reminder.times.hint", comment: "Reminder times picker hint")
+        label.font = .ladomiRegular(15)
+        label.textColor = .ypLightGray
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private lazy var tableView: UITableView = {
+        let tableView = UITableView(frame: .zero, style: .plain)
+        tableView.register(ReminderTimeCell.self, forCellReuseIdentifier: ReminderTimeCell.reuseIdentifier)
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.rowHeight = 56
+        tableView.separatorStyle = .none
+        tableView.backgroundColor = .clear
+        tableView.showsVerticalScrollIndicator = false
+        return tableView
+    }()
+
+    private lazy var emptyLabel: UILabel = {
+        let label = UILabel()
+        label.text = NSLocalizedString("reminder.times.empty", comment: "No reminder times")
+        label.font = .ladomiRegular(15)
+        label.textColor = .ypLightGray
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private lazy var addTimeButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle(NSLocalizedString("reminder.addTime", comment: "Add reminder time button"), for: .normal)
+        button.setTitleColor(.ypBlue, for: .normal)
+        button.setImage(UIImage(systemName: "plus.circle.fill"), for: .normal)
+        button.tintColor = .ypBlue
+        button.titleLabel?.font = .ladomiBold(16)
+        button.semanticContentAttribute = .forceLeftToRight
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -6, bottom: 0, right: 6)
+        button.addTarget(self, action: #selector(addTime), for: .touchUpInside)
+        return button
+    }()
+
+    private lazy var doneButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.backgroundColor = .ypBlack
+        button.setTitleColor(.ypWhite, for: .normal)
+        button.setTitle(NSLocalizedString("done", comment: "Done button"), for: .normal)
+        button.titleLabel?.font = .ladomiBold(17)
+        button.layer.cornerRadius = 16
+        button.addTarget(self, action: #selector(doneButtonDidTap), for: .touchUpInside)
+        return button
+    }()
+
+    init(selectedTimes: [Date], maximumTimes: Int) {
+        let normalizedMaximumTimes = max(1, maximumTimes)
+        self.maximumTimes = normalizedMaximumTimes
+        self.selectedTimes = Array(selectedTimes.prefix(normalizedMaximumTimes))
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .ypWhite
+        setupUI()
+        updateState()
+    }
+
+    private func setupUI() {
+        tableView.backgroundView = emptyLabel
+        [titleLabel, hintLabel, tableView, addTimeButton, doneButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 30),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            hintLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            hintLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            hintLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            tableView.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 12),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            tableView.heightAnchor.constraint(equalToConstant: 230),
+
+            addTimeButton.topAnchor.constraint(equalTo: tableView.bottomAnchor, constant: 4),
+            addTimeButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            addTimeButton.heightAnchor.constraint(equalToConstant: 44),
+
+            doneButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            doneButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            doneButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+            doneButton.heightAnchor.constraint(equalToConstant: 60)
+        ])
+    }
+
+    private func updateState() {
+        emptyLabel.isHidden = !selectedTimes.isEmpty
+        addTimeButton.isEnabled = selectedTimes.count < maximumTimes
+        addTimeButton.alpha = addTimeButton.isEnabled ? 1 : 0.35
+        tableView.reloadData()
+    }
+
+    private func suggestedTime() -> Date {
+        if let latestTime = selectedTimes.max() {
+            return Calendar.current.date(byAdding: .hour, value: 1, to: latestTime) ?? latestTime
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let nextHour = calendar.date(byAdding: .hour, value: 1, to: now) ?? now
+        return calendar.date(bySetting: .minute, value: 0, of: nextHour) ?? nextHour
+    }
+
+    private func sortedUniqueTimes() -> [Date] {
+        let calendar = Calendar.current
+        var seenMinutes: Set<Int> = []
+        return selectedTimes
+            .sorted {
+                let first = calendar.dateComponents([.hour, .minute], from: $0)
+                let second = calendar.dateComponents([.hour, .minute], from: $1)
+                return (first.hour ?? 0, first.minute ?? 0) < (second.hour ?? 0, second.minute ?? 0)
+            }
+            .filter { date in
+                let components = calendar.dateComponents([.hour, .minute], from: date)
+                let minutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+                return seenMinutes.insert(minutes).inserted
+            }
+    }
+
+    @objc private func addTime() {
+        guard selectedTimes.count < maximumTimes else { return }
+        selectedTimes.append(suggestedTime())
+        updateState()
+        tableView.scrollToRow(at: IndexPath(row: selectedTimes.count - 1, section: 0), at: .bottom, animated: true)
+    }
+
+    @objc private func doneButtonDidTap() {
+        onDone?(sortedUniqueTimes())
+        dismiss(animated: true)
+    }
+}
+
+extension ReminderTimesPickerViewController: UITableViewDataSource, UITableViewDelegate {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        selectedTimes.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: ReminderTimeCell.reuseIdentifier,
+            for: indexPath
+        ) as? ReminderTimeCell else {
+            return UITableViewCell()
+        }
+
+        cell.configure(time: selectedTimes[indexPath.row])
+        cell.onTimeChanged = { [weak self, weak cell] time in
+            guard let self, let cell, let currentIndexPath = tableView.indexPath(for: cell) else { return }
+            self.selectedTimes[currentIndexPath.row] = time
+        }
+        cell.onDelete = { [weak self, weak cell] in
+            guard let self, let cell, let currentIndexPath = tableView.indexPath(for: cell) else { return }
+            self.selectedTimes.remove(at: currentIndexPath.row)
+            self.updateState()
+        }
+        return cell
+    }
+}
+
+private final class ReminderTimeCell: UITableViewCell {
+    static let reuseIdentifier = "ReminderTimeCell"
+
+    var onTimeChanged: ((Date) -> Void)?
+    var onDelete: (() -> Void)?
+
+    private let roundedContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .ypGray
+        view.layer.cornerRadius = 16
+        view.layer.masksToBounds = true
+        return view
+    }()
+
+    private lazy var timePicker: UIDatePicker = {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .time
+        picker.preferredDatePickerStyle = .compact
+        picker.addTarget(self, action: #selector(timeDidChange), for: .valueChanged)
+        return picker
+    }()
+
+    private lazy var deleteButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.tintColor = .ypRed
+        button.setImage(UIImage(systemName: "minus.circle.fill"), for: .normal)
+        button.addTarget(self, action: #selector(deleteDidTap), for: .touchUpInside)
+        return button
+    }()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        backgroundColor = .clear
+        selectionStyle = .none
+
+        roundedContainerView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(roundedContainerView)
+
+        [timePicker, deleteButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            roundedContainerView.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            roundedContainerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
+            roundedContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            roundedContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            roundedContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
+
+            timePicker.leadingAnchor.constraint(equalTo: roundedContainerView.leadingAnchor, constant: 16),
+            timePicker.centerYAnchor.constraint(equalTo: roundedContainerView.centerYAnchor),
+            deleteButton.trailingAnchor.constraint(equalTo: roundedContainerView.trailingAnchor, constant: -12),
+            deleteButton.centerYAnchor.constraint(equalTo: roundedContainerView.centerYAnchor),
+            deleteButton.widthAnchor.constraint(equalToConstant: 36),
+            deleteButton.heightAnchor.constraint(equalToConstant: 36)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        onTimeChanged = nil
+        onDelete = nil
+    }
+
+    func configure(time: Date) {
+        timePicker.date = time
+    }
+
+    @objc private func timeDidChange() {
+        onTimeChanged?(timePicker.date)
+    }
+
+    @objc private func deleteDidTap() {
+        onDelete?()
     }
 }

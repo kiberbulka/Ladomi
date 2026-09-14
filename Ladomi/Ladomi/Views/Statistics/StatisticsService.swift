@@ -148,11 +148,20 @@ final class StatisticsService {
         
         let groupedByDate = Dictionary(grouping: records) { calendar.startOfDay(for: $0.date) }
         
-        let completedCount = records.count
         let today = calendar.startOfDay(for: Date())
-        let completedToday = records.filter { calendar.isDate($0.date, inSameDayAs: today) }.count
-        let completedThisWeek = recordsCount(in: calendar.dateInterval(of: .weekOfYear, for: today), records: records)
-        let completedThisMonth = recordsCount(in: calendar.dateInterval(of: .month, for: today), records: records)
+        let completedIDsByDate = groupedByDate.mapValues { dateRecords in
+            completedDayItemIDs(on: dateRecords[0].date, dayItems: dayItems, records: dateRecords)
+        }
+        let completedCount = completedIDsByDate.values.reduce(0) { $0 + $1.count }
+        let completedToday = completedIDsByDate[today]?.count ?? 0
+        let completedThisWeek = countCompletedItems(
+            in: calendar.dateInterval(of: .weekOfYear, for: today),
+            completedIDsByDate: completedIDsByDate
+        )
+        let completedThisMonth = countCompletedItems(
+            in: calendar.dateInterval(of: .month, for: today),
+            completedIDsByDate: completedIDsByDate
+        )
         
         let uniqueDaysCount = groupedByDate.keys.count
         let averagePerDay = uniqueDaysCount == 0 ? 0 : Int(round(Double(completedCount) / Double(uniqueDaysCount)))
@@ -233,7 +242,11 @@ final class StatisticsService {
                 postponements: postponements,
                 today: today
             )
-            let completedIDs = Set(recordsByDate[date, default: []].map { $0.dayItemID })
+            let completedIDs = completedDayItemIDs(
+                on: date,
+                dayItems: dayItems,
+                records: recordsByDate[date, default: []]
+            )
             let completedHabitCount = completedIDs.intersection(habitPlannedIDs).count
             let completedEventCount = eventPlannedIDs.filter { eventCompletionDates[$0] != nil }.count
 
@@ -311,12 +324,24 @@ final class StatisticsService {
         }
     }
 
-    private func recordsCount(in interval: DateInterval?, records: [DayItemRecord]) -> Int {
+    private func countCompletedItems(in interval: DateInterval?, completedIDsByDate: [Date: Set<UUID>]) -> Int {
         guard let interval = interval else {
             return 0
         }
 
-        return records.filter { interval.contains($0.date) }.count
+        return completedIDsByDate.reduce(0) { result, entry in
+            interval.contains(entry.key) ? result + entry.value.count : result
+        }
+    }
+
+    private func completedDayItemIDs(
+        on date: Date,
+        dayItems: [DayItem],
+        records: [DayItemRecord]
+    ) -> Set<UUID> {
+        Set(dayItems.compactMap { dayItem in
+            dayItem.isCompleted(on: date, in: records, calendar: calendar) ? dayItem.id : nil
+        })
     }
 
     private func statisticsPeriodStart(dayItems: [DayItem], records: [DayItemRecord], today: Date) -> Date {
@@ -372,7 +397,11 @@ final class StatisticsService {
             return false
         }
 
-        let completedIDs = Set(recordsByDate[calendar.startOfDay(for: date), default: []].map { $0.dayItemID })
+        let completedIDs = completedDayItemIDs(
+            on: date,
+            dayItems: dayItems,
+            records: recordsByDate[calendar.startOfDay(for: date), default: []]
+        )
         return activeIDs.isSubset(of: completedIDs)
     }
 

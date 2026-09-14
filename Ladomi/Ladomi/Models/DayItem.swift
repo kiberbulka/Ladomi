@@ -7,7 +7,9 @@ struct DayItem {
     let emoji: String
     let schedule: [Weekday]
     let isHabit: Bool
-    let reminderTime: Date?
+    let repetitionsPerDay: Int
+    let reminderTimes: [Date]
+    var reminderTime: Date? { reminderTimes.first }
     let eventDate: Date?
     let createdDate: Date
     let archivedDate: Date?
@@ -21,7 +23,9 @@ struct DayItem {
         emoji: String,
         schedule: [Weekday],
         isHabit: Bool,
+        repetitionsPerDay: Int = 1,
         reminderTime: Date? = nil,
+        reminderTimes: [Date]? = nil,
         eventDate: Date? = nil,
         createdDate: Date = Date(),
         archivedDate: Date? = nil,
@@ -34,12 +38,55 @@ struct DayItem {
         self.emoji = emoji
         self.schedule = schedule
         self.isHabit = isHabit
-        self.reminderTime = reminderTime
+        let normalizedRepetitionsPerDay = max(1, repetitionsPerDay)
+        let normalizedReminderTimes = Self.normalizedReminderTimes(
+            reminderTimes ?? reminderTime.map { [$0] } ?? []
+        )
+        self.repetitionsPerDay = normalizedRepetitionsPerDay
+        self.reminderTimes = isHabit
+            ? Array(normalizedReminderTimes.prefix(normalizedRepetitionsPerDay))
+            : normalizedReminderTimes
         self.eventDate = eventDate
         self.createdDate = createdDate
         self.archivedDate = archivedDate
         self.isArchived = isArchived
         self.isStopList = isStopList
+    }
+
+    private static func normalizedReminderTimes(_ dates: [Date]) -> [Date] {
+        let calendar = Calendar.current
+        var seenMinutes: Set<Int> = []
+
+        return dates
+            .sorted {
+                let first = calendar.dateComponents([.hour, .minute], from: $0)
+                let second = calendar.dateComponents([.hour, .minute], from: $1)
+                return (first.hour ?? 0, first.minute ?? 0) < (second.hour ?? 0, second.minute ?? 0)
+            }
+            .filter { date in
+                let components = calendar.dateComponents([.hour, .minute], from: date)
+                let minutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+                return seenMinutes.insert(minutes).inserted
+            }
+    }
+}
+
+enum DayItemReminderTimesCoder {
+    static func encode(_ reminderTimes: [Date]) -> String? {
+        guard !reminderTimes.isEmpty,
+              let data = try? JSONEncoder().encode(reminderTimes.map(\.timeIntervalSinceReferenceDate)) else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func decode(_ value: String?) -> [Date]? {
+        guard let value,
+              let data = value.data(using: .utf8),
+              let intervals = try? JSONDecoder().decode([TimeInterval].self, from: data) else {
+            return nil
+        }
+        return intervals.map(Date.init(timeIntervalSinceReferenceDate:))
     }
 }
 

@@ -38,9 +38,9 @@ final class LadomiWidgetSnapshotService {
         )
         let todayDayItems = todayHabits + todayEvents
 
-        let completedDayItemIDs = Set(completedRecords
-            .filter { calendar.isDate($0.date, inSameDayAs: date) }
-            .map(\.dayItemID))
+        let completedDayItemIDs = Set(todayDayItems.compactMap { dayItem in
+            dayItem.isCompleted(on: date, in: completedRecords, calendar: calendar) ? dayItem.id : nil
+        })
 
         let items = todayDayItems
             .prefix(5)
