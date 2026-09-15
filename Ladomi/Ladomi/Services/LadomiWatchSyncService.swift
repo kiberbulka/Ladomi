@@ -51,6 +51,12 @@ final class LadomiWatchSyncService: NSObject {
                     "title": item.name,
                     "emoji": item.emoji,
                     "color": item.color.toHexString() ?? "#D9D9D9",
+                    "isHabit": item.isHabit,
+                    "repetitionsPerDay": item.isHabit ? item.repetitionsPerDay : 1,
+                    "completedRepetitions": min(
+                        item.completedRepetitions(on: today, in: records),
+                        item.isHabit ? item.repetitionsPerDay : 1
+                    ),
                     "isCompleted": item.isCompleted(on: today, in: records)
                 ]
             }
@@ -130,8 +136,43 @@ final class LadomiWatchSyncService: NSObject {
         }
     }
 
+    private func addCompletion(id: UUID, dayKey: String) {
+        guard dayKey == dateKey(Date()),
+              let dayItem = dayItemStore.dayItem(with: id),
+              dayItem.isHabit,
+              !dayItem.isStopList else { return }
+
+        let today = Date()
+        let records = dayItemRecordStore.fetch()
+        guard isVisibleToday(dayItem, records: records, today: today) else { return }
+        guard dayItem.completedRepetitions(on: today, in: records) < dayItem.repetitionsPerDay else {
+            return
+        }
+
+        do {
+            try dayItemRecordStore.add(dayItemRecord: DayItemRecord(dayItemID: id, date: today))
+            let updatedRecords = dayItemRecordStore.fetch()
+            if dayItem.isCompleted(on: today, in: updatedRecords) {
+                ReminderNotificationService.shared.removeReminder(for: id, on: today)
+            }
+            NotificationCenter.default.post(name: Self.recordsDidChangeNotification, object: nil)
+            publishTodayPlans()
+        } catch {
+            print("Failed to add Apple Watch completion: \(error)")
+        }
+    }
+
     private func handle(_ message: [String: Any], replyHandler: (([String: Any]) -> Void)? = nil) {
         switch message["action"] as? String {
+        case "addCompletion":
+            guard let idString = message["id"] as? String,
+                  let id = UUID(uuidString: idString),
+                  let dayKey = message["dayKey"] as? String else {
+                replyHandler?(todayPayload())
+                return
+            }
+            addCompletion(id: id, dayKey: dayKey)
+            replyHandler?(todayPayload())
         case "setCompleted":
             guard
                 let idString = message["id"] as? String,

@@ -97,10 +97,17 @@ private struct PlanCard: View {
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: plan.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(plan.isCompleted ? .black : .black.opacity(0.45))
-                    .contentTransition(.symbolEffect(.replace))
+                if plan.hasMultipleRepetitions {
+                    Text("\(plan.completedRepetitions)/\(plan.repetitionsPerDay)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 34)
+                } else {
+                    Image(systemName: plan.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(plan.isCompleted ? .black : .black.opacity(0.45))
+                        .contentTransition(.symbolEffect(.replace))
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 11)
@@ -109,7 +116,11 @@ private struct PlanCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(plan.title)
-        .accessibilityValue(Text(plan.isCompleted ? "watch.completed" : "watch.notCompleted"))
+        .accessibilityValue(
+            plan.hasMultipleRepetitions
+                ? Text("\(plan.completedRepetitions)/\(plan.repetitionsPerDay)")
+                : Text(plan.isCompleted ? "watch.completed" : "watch.notCompleted")
+        )
     }
 }
 

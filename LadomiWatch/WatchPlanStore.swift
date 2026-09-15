@@ -8,6 +8,7 @@ final class WatchPlanStore: NSObject, ObservableObject {
 
     private let cacheKey = "watch.todayPlans"
     private var session: WCSession?
+    private var lastPayloadUpdate: TimeInterval = 0
 
     override init() {
         super.init()
@@ -24,14 +25,24 @@ final class WatchPlanStore: NSObject, ObservableObject {
             return
         }
 
-        plans[index].isCompleted.toggle()
+        let message: [String: Any]
+        if plans[index].hasMultipleRepetitions {
+            guard !plans[index].isCompleted else { return }
+            plans[index].completedRepetitions += 1
+            message = [
+                "action": "addCompletion",
+                "id": plan.id.uuidString,
+                "dayKey": Self.dayKey(for: Date())
+            ]
+        } else {
+            plans[index].completedRepetitions = plans[index].isCompleted ? 0 : 1
+            message = [
+                "action": "setCompleted",
+                "id": plan.id.uuidString,
+                "isCompleted": plans[index].isCompleted
+            ]
+        }
         persistCache()
-
-        let message: [String: Any] = [
-            "action": "setCompleted",
-            "id": plan.id.uuidString,
-            "isCompleted": plans[index].isCompleted
-        ]
 
         if let session, session.isReachable {
             session.sendMessage(message, replyHandler: { [weak self] reply in
@@ -74,6 +85,10 @@ final class WatchPlanStore: NSObject, ObservableObject {
 
     private func applyPayload(_ payload: [String: Any]) {
         guard let rawPlans = payload["plans"] as? [[String: Any]] else { return }
+        if let updatedAt = payload["updatedAt"] as? TimeInterval {
+            guard updatedAt >= lastPayloadUpdate else { return }
+            lastPayloadUpdate = updatedAt
+        }
         plans = rawPlans.compactMap(WatchPlan.init(dictionary:))
         persistCache()
     }
@@ -91,6 +106,11 @@ final class WatchPlanStore: NSObject, ObservableObject {
     private func persistCache() {
         guard let data = try? JSONEncoder().encode(plans) else { return }
         UserDefaults.standard.set(data, forKey: cacheKey)
+    }
+
+    private static func dayKey(for date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
     }
 }
 
